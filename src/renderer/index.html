@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'none'; script-src 'self'; style-src 'self'; connect-src http://localhost:*;">
+  <title>Threadbase</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app">
+    <div class="header">
+      <span class="logo">⬡</span>
+      <span class="title">Threadbase Streamer</span>
+    </div>
+
+    <div class="card">
+      <div class="status-row">
+        <span id="dot" class="dot dot-gray"></span>
+        <span id="status-text">Checking…</span>
+      </div>
+      <div id="version-row" class="meta-row hidden">
+        <span class="label">Version</span>
+        <span id="version-value" class="value">—</span>
+      </div>
+      <div class="meta-row">
+        <span class="label">Port</span>
+        <span id="port-value" class="value">—</span>
+      </div>
+      <div class="meta-row">
+        <span class="label">Last checked</span>
+        <span id="last-checked" class="value">—</span>
+      </div>
+    </div>
+
+    <div class="footer">
+      <button id="quit-btn" class="btn">Quit</button>
+    </div>
+  </div>
+  <script src="renderer.js"></script>
+</body>
+</html>
