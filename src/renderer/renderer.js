@@ -50,6 +50,16 @@ function updateLastChecked() {
     secs === 0 ? "just now" : `${secs}s ago`;
 }
 
+const loginToggle = document.getElementById("login-toggle");
+
+window.electronAPI.getLoginSetting().then((enabled) => {
+  loginToggle.checked = enabled;
+});
+
+loginToggle.addEventListener("change", (e) => {
+  window.electronAPI.setLoginSetting(e.target.checked);
+});
+
 checkStatus();
 setInterval(checkStatus, POLL_INTERVAL);
 setInterval(updateLastChecked, 1000);
