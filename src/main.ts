@@ -1,4 +1,4 @@
-import { app, ipcMain } from "electron";
+import { app, ipcMain, screen } from "electron";
 import { menubar } from "menubar";
 import * as fs from "fs";
 import * as os from "os";
@@ -69,9 +69,10 @@ function setLoginSetting(enable: boolean): void {
 const mb = menubar({
 	index: `file://${path.join(__dirname, "../src/renderer/index.html")}?port=${port}`,
 	icon: createIcon("stopped"),
+	windowPosition: "bottomRight",
 	browserWindow: {
-		width: 280,
-		height: 330,
+		width: 360,
+		height: 420,
 		resizable: false,
 		movable: false,
 		webPreferences: {
@@ -85,9 +86,24 @@ const mb = menubar({
 
 mb.on("ready", () => {
 	mb.tray.setToolTip("Threadbase Streamer");
+	mb.window?.on("blur", () => mb.hideWindow());
 	if (!readConfig().configured) {
 		mb.showWindow();
 	}
+});
+
+mb.on("after-create-window", () => {
+	mb.window?.setOpacity(0);
+	mb.window?.on("show", () => {
+		if (!mb.window) return;
+		const { workArea } = screen.getPrimaryDisplay();
+		const [w, h] = mb.window.getSize();
+		mb.window.setPosition(
+			workArea.x + Math.round((workArea.width - w) / 2),
+			workArea.y + Math.round((workArea.height - h) / 2),
+		);
+		mb.window.setOpacity(1);
+	});
 });
 
 ipcMain.on("status-update", (_event, status: { ok: boolean }) => {
@@ -101,4 +117,5 @@ ipcMain.on("set-login-setting", (_event, enable: boolean) => {
 	writeConfig({ configured: true });
 });
 
+ipcMain.on("close-window", () => mb.hideWindow());
 ipcMain.on("quit", () => app.quit());
