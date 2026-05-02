@@ -49,13 +49,23 @@ Server config is read from `~/.threadbase/server.yaml` by the streamer itself; t
 Follow the existing conventions when adding new channels:
 
 - `ipcMain.handle` + `ipcRenderer.invoke` — for queries that return a value (e.g. `get-login-setting`)
-- `ipcMain.on` + `ipcRenderer.send` — for fire-and-forget actions (e.g. `set-login-setting`, `quit`, `status-update`)
+- `ipcMain.on` + `ipcRenderer.send` — for fire-and-forget actions (e.g. `set-login-setting`, `quit`, `status-update`, `close-window`)
 - All Node.js access from the renderer must go through `preload.ts` — **never** enable `nodeIntegration` or disable `contextIsolation`
+- `platform` is exposed as a plain value (not IPC) via `contextBridge` so the renderer can branch on OS without a round-trip
+
+## Windows-specific behavior
+
+**Popup positioning:** on Windows the tray icon often lives in the overflow ("hidden icons") area. Positioning the popup near the tray icon overlaps with the overflow menu, so the window is instead centered on screen. This is done via the `after-create-window` event: opacity is set to 0 on creation, then on every `show` event the window is repositioned to center before opacity is restored to 1. This prevents any visible jump from the tray position to the center.
+
+**Close button:** a ✕ button is shown in the popup header only on `win32` (detected via `window.electronAPI.platform`). It sends `close-window` IPC which calls `mb.hideWindow()` — it does not quit the app.
+
+**Launching from scripts:** always use `electron.exe` directly from `node_modules\electron\dist\electron.exe`. Do NOT use `node_modules\.bin\electron.cmd` — the `.cmd` wrapper spawns a cmd.exe parent that exits and takes the Electron process with it. Pass required env vars explicitly via `Start-Process -Environment` since they are not inherited from the calling shell.
 
 ## Gotchas
 
 - `main.ts` references the renderer as `../src/renderer/index.html` (relative from `dist/`) — intentional dev shortcut, not valid in a packaged build. Do not "fix" this path until packaging with electron-builder is implemented.
 - Renderer files (`renderer.js`, `styles.css`) are plain JS/CSS — do not convert them to TypeScript without also setting up a renderer build step.
+- Electron spawns ~10 child processes per instance. Killing stale instances requires `Get-Process electron | Stop-Process -Force` (kills all of them), not targeting a single PID.
 
 ## Conventions
 
