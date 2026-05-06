@@ -22,20 +22,49 @@ Menu bar status indicator for [Threadbase Streamer](https://github.com/RonenMars
 - Node.js 18+
 - The [Threadbase Streamer](https://github.com/RonenMars/threadbase-streamer) running on `localhost` (default port `3456`)
 
-## Getting started
+## Install (macOS)
+
+Two paths depending on whether you're a developer or just want to run the app.
+
+### From a packaged `.dmg`
+
+If you have a built `.dmg` (typically published as a GitHub Release asset on this repo or sitting under `~/.threadbase/releases/menubar/` on a build machine):
+
+```bash
+hdiutil attach ~/Downloads/Threadbase-Menubar-*-universal.dmg
+cp -R "/Volumes/Threadbase Menubar*/Threadbase Menubar.app" /Applications/
+hdiutil detach "/Volumes/Threadbase Menubar*"
+open -a "Threadbase Menubar"
+```
+
+**First-launch caveat:** if the `.dmg` was signed and notarised by Apple Developer ID (the published release path), it opens silently. If it's an ad-hoc-signed local build that was downloaded via a browser, macOS Gatekeeper quarantines it — right-click → Open the first time, or run:
+
+```bash
+xattr -dr com.apple.quarantine "/Applications/Threadbase Menubar.app"
+```
+
+### From source (developers)
 
 ```bash
 npm install
-npm start        # builds TypeScript then launches the app
+npm start        # builds TypeScript then launches Electron
 ```
 
-For development with watch mode:
+For dev iteration:
 
 ```bash
-npm run build    # one-shot compile
-# in a second terminal:
+npm run build           # one-shot tsc + renderer copy
 electron .
 ```
+
+To produce a `.app` locally:
+
+```bash
+npm run package:mac:dir    # fast, unpacked .app in release/mac-arm64/
+npm run package:mac        # full universal .dmg in release/
+```
+
+`package:mac` produces a signed + notarised build only when `APPLE_TEAM_ID`, `APPLE_API_KEY_ID`, `APPLE_API_ISSUER`, and `APPLE_API_KEY` env vars are set (typically sourced from `~/.threadbase/menubar-signing.env`). Without them, the build is ad-hoc signed — fine for local use, quarantined when transported.
 
 ## Configuration
 

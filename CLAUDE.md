@@ -61,11 +61,26 @@ Follow the existing conventions when adding new channels:
 
 **Launching from scripts:** always use `electron.exe` directly from `node_modules\electron\dist\electron.exe`. Do NOT use `node_modules\.bin\electron.cmd` — the `.cmd` wrapper spawns a cmd.exe parent that exits and takes the Electron process with it. Pass required env vars explicitly via `Start-Process -Environment` since they are not inherited from the calling shell.
 
+## Packaging (macOS)
+
+The app is packaged with electron-builder. Config lives in `electron-builder.config.js` (JS form, not the `package.json` `build` block — needed for conditional signing).
+
+Scripts:
+- `npm run package:mac` — full build, produces a universal `.dmg` in `release/`
+- `npm run package:mac:dir` — fast, unpacked `.app` in `release/mac-arm64/` for verification (skips DMG step + universal merge)
+- `npm run build:icon` — regenerates `build/icon.icns` from `assets/source-icon.svg`
+
+**Signing is conditional on `APPLE_TEAM_ID` env var:**
+- When set (sourced from `~/.threadbase/menubar-signing.env`) → Developer ID signing + hardened runtime + notarisation via `scripts/notarize.cjs` (uses App Store Connect API key)
+- When unset → ad-hoc signing, no notarisation; `.app` runs locally on the build machine but is quarantined when transported to other Macs
+
+The split exists because the dev keychain often contains expired/revoked certs that auto-discovery would pick up incorrectly. Setting `identity` explicitly avoids the trap.
+
 ## Gotchas
 
-- `main.ts` references the renderer as `../src/renderer/index.html` (relative from `dist/`) — intentional dev shortcut, not valid in a packaged build. Do not "fix" this path until packaging with electron-builder is implemented.
-- Renderer files (`renderer.js`, `styles.css`) are plain JS/CSS — do not convert them to TypeScript without also setting up a renderer build step.
+- Renderer files (`renderer.js`, `styles.css`) are plain JS/CSS — do not convert them to TypeScript without also setting up a renderer build step. They are copied verbatim from `src/renderer/` to `dist/renderer/` by `scripts/copy-renderer.mjs` (postbuild).
 - Electron spawns ~10 child processes per instance. Killing stale instances requires `Get-Process electron | Stop-Process -Force` (kills all of them), not targeting a single PID.
+- electron-builder does not auto-discover `electron-builder.config.js` — must be passed explicitly via `-c`. The npm scripts do this; one-off `npx electron-builder` invocations need the flag too.
 
 ## Conventions
 

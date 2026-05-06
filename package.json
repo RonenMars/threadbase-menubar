@@ -5,9 +5,12 @@
 	"main": "dist/main.js",
 	"scripts": {
 		"start": "npm run build && electron .",
-		"build": "tsc",
+		"build": "tsc && node scripts/copy-renderer.mjs",
 		"build:icons": "./scripts/build-tray-icons.sh",
-		"dev": "tsc && electron ."
+		"build:icon": "./scripts/build-app-icon.sh",
+		"dev": "npm run build && electron .",
+		"package:mac": "npm run build && electron-builder --mac -c electron-builder.config.js",
+		"package:mac:dir": "npm run build && electron-builder --mac --dir -c electron-builder.config.js"
 	},
 	"dependencies": {
 		"menubar": "^9.3.0"
@@ -16,6 +19,7 @@
 		"@biomejs/biome": "^2.4.13",
 		"@types/node": "^20.0.0",
 		"electron": "^28.0.0",
+		"electron-builder": "^25.1.8",
 		"typescript": "^5.5.0"
 	}
 }

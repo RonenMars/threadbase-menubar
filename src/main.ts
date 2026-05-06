@@ -67,7 +67,7 @@ function setLoginSetting(enable: boolean): void {
 // ── App ──────────────────────────────────────────────────────────────────────
 
 const mb = menubar({
-	index: `file://${path.join(__dirname, "../src/renderer/index.html")}?port=${port}`,
+	index: `file://${path.join(__dirname, "renderer/index.html")}?port=${port}`,
 	icon: createIcon("stopped"),
 	windowPosition: "bottomRight",
 	browserWindow: {
