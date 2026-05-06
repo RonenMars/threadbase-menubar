@@ -1,0 +1,23 @@
+<svg viewBox="128 140 295 220" xmlns="http://www.w3.org/2000/svg">
+  <!-- Vertical rail -->
+  <rect x="137" y="152" width="3" height="228" rx="1.5" fill="#6e7681" opacity="0.55"/>
+
+  <!-- Thread 1 (top) -->
+  <rect x="138" y="152" width="234" height="22" rx="11" fill="#6e7681"/>
+  <!-- Thread 2 -->
+  <rect x="138" y="200" width="178" height="22" rx="11" fill="#6e7681" opacity="0.7"/>
+  <!-- Thread 3 -->
+  <rect x="138" y="248" width="206" height="22" rx="11" fill="#6e7681" opacity="0.45"/>
+
+  <!-- Base bar (neutral) -->
+  <rect x="138" y="316" width="240" height="16" rx="8" fill="#6e7681" opacity="0.85"/>
+
+  <!-- Node 1 -->
+  <circle cx="138" cy="163" r="10" fill="#6e7681"/>
+  <!-- Node 2 -->
+  <circle cx="138" cy="211" r="10" fill="#6e7681" opacity="0.7"/>
+  <!-- Node 3 -->
+  <circle cx="138" cy="259" r="10" fill="#6e7681" opacity="0.45"/>
+  <!-- Node 4 -->
+  <circle cx="138" cy="324" r="12" fill="#6e7681" opacity="0.85"/>
+</svg>

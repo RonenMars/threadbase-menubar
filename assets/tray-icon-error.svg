@@ -1,0 +1,21 @@
+<svg viewBox="128 140 295 220" xmlns="http://www.w3.org/2000/svg">
+  <!-- Vertical rail -->
+  <rect x="137" y="152" width="3" height="228" rx="1.5" fill="#6e7681" opacity="0.55"/>
+
+  <!-- Thread 1 (top) — dimmed -->
+  <rect x="138" y="152" width="234" height="22" rx="11" fill="#6e7681" opacity="0.6"/>
+  <!-- Thread 2 -->
+  <rect x="138" y="200" width="178" height="22" rx="11" fill="#6e7681" opacity="0.45"/>
+  <!-- Thread 3 -->
+  <rect x="138" y="248" width="206" height="22" rx="11" fill="#6e7681" opacity="0.3"/>
+
+  <!-- Base bar — red error accent -->
+  <rect x="138" y="316" width="240" height="16" rx="8" fill="#ff453a"/>
+
+  <!-- Nodes — dimmed -->
+  <circle cx="138" cy="163" r="10" fill="#6e7681" opacity="0.6"/>
+  <circle cx="138" cy="211" r="10" fill="#6e7681" opacity="0.45"/>
+  <circle cx="138" cy="259" r="10" fill="#6e7681" opacity="0.3"/>
+  <!-- Node 4 — red error -->
+  <circle cx="138" cy="324" r="12" fill="#ff453a"/>
+</svg>

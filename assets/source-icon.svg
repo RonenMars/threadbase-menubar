@@ -1,0 +1,131 @@
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Background radial glow -->
+    <radialGradient id="bgGlow" cx="50%" cy="42%" r="55%">
+      <stop offset="0%" stop-color="#0f1e35"/>
+      <stop offset="100%" stop-color="#070b11"/>
+    </radialGradient>
+
+    <!-- Blue thread glow -->
+    <filter id="blueGlow" x="-30%" y="-80%" width="160%" height="360%">
+      <feGaussianBlur stdDeviation="5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Orange glow -->
+    <filter id="orangeGlow" x="-60%" y="-160%" width="220%" height="520%">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Subtle circuit grid pattern -->
+    <pattern id="grid" x="0" y="0" width="32" height="32" patternUnits="userSpaceOnUse">
+      <path d="M 32 0 L 0 0 0 32" fill="none" stroke="#1a2d47" stroke-width="0.5" opacity="0.4"/>
+    </pattern>
+
+    <!-- Thread line gradient (blue) -->
+    <linearGradient id="threadGrad1" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#63b3ff" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#63b3ff" stop-opacity="0.25"/>
+    </linearGradient>
+    <linearGradient id="threadGrad2" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#63b3ff" stop-opacity="0.75"/>
+      <stop offset="100%" stop-color="#63b3ff" stop-opacity="0.15"/>
+    </linearGradient>
+    <linearGradient id="threadGrad3" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#63b3ff" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#63b3ff" stop-opacity="0.08"/>
+    </linearGradient>
+
+    <!-- Base bar gradient (orange) -->
+    <linearGradient id="baseGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#f08a24" stop-opacity="1"/>
+      <stop offset="60%" stop-color="#f08a24" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#f08a24" stop-opacity="0"/>
+    </linearGradient>
+
+    <!-- Clip to rounded square -->
+    <clipPath id="roundedClip">
+      <rect width="512" height="512" rx="96" ry="96"/>
+    </clipPath>
+  </defs>
+
+  <!-- Background -->
+  <rect width="512" height="512" rx="96" fill="#070b11"/>
+  <rect width="512" height="512" rx="96" fill="url(#bgGlow)"/>
+
+  <!-- Subtle circuit grid -->
+  <rect width="512" height="512" rx="96" fill="url(#grid)" clip-path="url(#roundedClip)"/>
+
+  <!-- Subtle top edge highlight (gloss) -->
+  <rect x="80" y="0" width="352" height="2" rx="1" fill="#63b3ff" opacity="0.12"/>
+
+  <!-- ─── Vertical rail (left connector) ─── -->
+  <rect x="137" y="152" width="3" height="228" rx="1.5" fill="#2a4060" opacity="0.9"/>
+
+  <!-- ─── Thread lines ─── -->
+
+  <!-- Thread 1 (top, brightest) -->
+  <rect x="138" y="152" width="234" height="22" rx="11" fill="url(#threadGrad1)" filter="url(#blueGlow)"/>
+  <!-- Trail tick on right end -->
+  <rect x="370" y="157" width="28" height="3" rx="1.5" fill="#63b3ff" opacity="0.35"/>
+  <rect x="404" y="157" width="12" height="3" rx="1.5" fill="#63b3ff" opacity="0.15"/>
+
+  <!-- Thread 2 -->
+  <rect x="138" y="200" width="178" height="22" rx="11" fill="url(#threadGrad2)"/>
+  <rect x="314" y="205" width="22" height="3" rx="1.5" fill="#63b3ff" opacity="0.25"/>
+
+  <!-- Thread 3 (bottom blue thread) -->
+  <rect x="138" y="248" width="206" height="22" rx="11" fill="url(#threadGrad3)"/>
+
+  <!-- ─── Base bar (orange) ─── -->
+  <rect x="138" y="316" width="240" height="16" rx="8" fill="url(#baseGrad)" filter="url(#orangeGlow)"/>
+  <!-- Dashed "stack" lines below base bar suggesting depth -->
+  <rect x="138" y="341" width="180" height="3" rx="1.5" fill="#f08a24" opacity="0.18"/>
+  <rect x="138" y="352" width="120" height="3" rx="1.5" fill="#f08a24" opacity="0.09"/>
+
+  <!-- ─── Node dots on rail ─── -->
+
+  <!-- Node 1 — bright blue -->
+  <circle cx="138" cy="163" r="10" fill="#070b11"/>
+  <circle cx="138" cy="163" r="10" fill="#63b3ff" opacity="0.15"/>
+  <circle cx="138" cy="163" r="5.5" fill="#63b3ff" filter="url(#blueGlow)"/>
+  <!-- Outer ring -->
+  <circle cx="138" cy="163" r="9" fill="none" stroke="#63b3ff" stroke-width="1.5" opacity="0.6"/>
+
+  <!-- Node 2 — medium blue -->
+  <circle cx="138" cy="211" r="10" fill="#070b11"/>
+  <circle cx="138" cy="211" r="5.5" fill="#63b3ff" opacity="0.7"/>
+  <circle cx="138" cy="211" r="9" fill="none" stroke="#63b3ff" stroke-width="1.5" opacity="0.35"/>
+
+  <!-- Node 3 — dim blue -->
+  <circle cx="138" cy="259" r="10" fill="#070b11"/>
+  <circle cx="138" cy="259" r="5.5" fill="#63b3ff" opacity="0.4"/>
+  <circle cx="138" cy="259" r="9" fill="none" stroke="#63b3ff" stroke-width="1.5" opacity="0.2"/>
+
+  <!-- Node 4 — orange BASE node -->
+  <circle cx="138" cy="324" r="12" fill="#070b11"/>
+  <circle cx="138" cy="324" r="12" fill="#f08a24" opacity="0.12"/>
+  <circle cx="138" cy="324" r="6.5" fill="#f08a24" filter="url(#orangeGlow)"/>
+  <circle cx="138" cy="324" r="11" fill="none" stroke="#f08a24" stroke-width="1.5" opacity="0.7"/>
+
+  <!-- ─── Decorative corner accent (top-right) ─── -->
+  <circle cx="390" cy="130" r="3" fill="#63b3ff" opacity="0.4"/>
+  <circle cx="406" cy="130" r="2" fill="#63b3ff" opacity="0.2"/>
+  <circle cx="418" cy="130" r="1.5" fill="#63b3ff" opacity="0.15"/>
+
+  <!-- ─── Small status dot (bottom-right) ─── -->
+  <circle cx="385" cy="340" r="4" fill="#f08a24" opacity="0.5"/>
+  <circle cx="398" cy="340" r="2.5" fill="#f08a24" opacity="0.25"/>
+
+  <!-- ─── Subtle border ring ─── -->
+  <rect x="1" y="1" width="510" height="510" rx="95" fill="none"
+        stroke="#7497c7" stroke-width="1.5" opacity="0.12"/>
+</svg>

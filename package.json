@@ -6,6 +6,7 @@
 	"scripts": {
 		"start": "npm run build && electron .",
 		"build": "tsc",
+		"build:icons": "./scripts/build-tray-icons.sh",
 		"dev": "tsc && electron ."
 	},
 	"dependencies": {
