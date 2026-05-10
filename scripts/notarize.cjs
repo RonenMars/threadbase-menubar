@@ -37,6 +37,19 @@ module.exports = async function notarize(context) {
 
 	const appName = packager.appInfo.productFilename;
 	const appPath = `${appOutDir}/${appName}.app`;
+	const zipPath = `${appOutDir}/${appName}.zip`;
+
+	// notarytool requires a zip, pkg, or dmg — not a raw .app
+	console.log(`  • zipping ${appPath} for notarisation`);
+	await new Promise((resolve, reject) => {
+		const child = require("node:child_process").spawn(
+			"ditto",
+			["-c", "-k", "--keepParent", appPath, zipPath],
+			{ stdio: "inherit" },
+		);
+		child.on("error", reject);
+		child.on("exit", (code) => (code === 0 ? resolve() : reject(new Error(`ditto exited ${code}`))));
+	});
 
 	console.log(`  • notarising ${appPath} (typically takes 1–5 minutes)`);
 
@@ -44,7 +57,7 @@ module.exports = async function notarize(context) {
 	await runXcrun([
 		"notarytool",
 		"submit",
-		appPath,
+		zipPath,
 		"--key",
 		APPLE_API_KEY,
 		"--key-id",
