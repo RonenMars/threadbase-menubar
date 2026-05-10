@@ -84,29 +84,52 @@ const mb = menubar({
 	preloadWindow: true,
 });
 
+function centerWindow(): void {
+	if (!mb.window) return;
+	const { workArea } = screen.getPrimaryDisplay();
+	const [w, h] = mb.window.getSize();
+	mb.window.setPosition(
+		workArea.x + Math.round((workArea.width - w) / 2),
+		workArea.y + Math.round((workArea.height - h) / 2),
+	);
+}
+
 mb.on("ready", () => {
 	mb.tray.setToolTip("Threadbase Streamer");
 	mb.window?.on("blur", () => mb.hideWindow());
 	if (!readConfig().configured) {
+		centerWindow();
 		mb.showWindow();
+	}
+
+	if (process.platform === "darwin") {
+		// Replace the menubar library's built-in click toggle with our own so we
+		// can debounce: macOS fires both 'click' and 'double-click' on a rapid
+		// double-tap, causing the window to show then immediately hide. A 200 ms
+		// guard ignores any click that arrives within the double-click window.
+		mb.tray.removeAllListeners("click");
+		let lastClick = 0;
+		mb.tray.on("click", () => {
+			const now = Date.now();
+			if (now - lastClick < 200) return;
+			lastClick = now;
+			if (mb.window?.isVisible()) {
+				mb.hideWindow();
+			} else {
+				centerWindow();
+				mb.showWindow();
+			}
+		});
 	}
 });
 
-// Windows only: tray icon lives in the overflow area, so center the window
-// instead of positioning it near the tray. The opacity trick prevents a
-// visible jump. On macOS the menubar library handles positioning natively.
+// Windows only: center popup since the tray lives in the overflow area.
 if (process.platform === "win32") {
 	mb.on("after-create-window", () => {
 		mb.window?.setOpacity(0);
 		mb.window?.on("show", () => {
-			if (!mb.window) return;
-			const { workArea } = screen.getPrimaryDisplay();
-			const [w, h] = mb.window.getSize();
-			mb.window.setPosition(
-				workArea.x + Math.round((workArea.width - w) / 2),
-				workArea.y + Math.round((workArea.height - h) / 2),
-			);
-			mb.window.setOpacity(1);
+			centerWindow();
+			mb.window?.setOpacity(1);
 		});
 	});
 }
