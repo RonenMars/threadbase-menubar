@@ -92,19 +92,24 @@ mb.on("ready", () => {
 	}
 });
 
-mb.on("after-create-window", () => {
-	mb.window?.setOpacity(0);
-	mb.window?.on("show", () => {
-		if (!mb.window) return;
-		const { workArea } = screen.getPrimaryDisplay();
-		const [w, h] = mb.window.getSize();
-		mb.window.setPosition(
-			workArea.x + Math.round((workArea.width - w) / 2),
-			workArea.y + Math.round((workArea.height - h) / 2),
-		);
-		mb.window.setOpacity(1);
+// Windows only: tray icon lives in the overflow area, so center the window
+// instead of positioning it near the tray. The opacity trick prevents a
+// visible jump. On macOS the menubar library handles positioning natively.
+if (process.platform === "win32") {
+	mb.on("after-create-window", () => {
+		mb.window?.setOpacity(0);
+		mb.window?.on("show", () => {
+			if (!mb.window) return;
+			const { workArea } = screen.getPrimaryDisplay();
+			const [w, h] = mb.window.getSize();
+			mb.window.setPosition(
+				workArea.x + Math.round((workArea.width - w) / 2),
+				workArea.y + Math.round((workArea.height - h) / 2),
+			);
+			mb.window.setOpacity(1);
+		});
 	});
-});
+}
 
 ipcMain.on("status-update", (_event, status: { ok: boolean }) => {
 	mb.tray.setImage(createIcon(status.ok ? "running" : "stopped"));
