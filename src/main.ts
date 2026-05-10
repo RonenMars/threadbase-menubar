@@ -103,21 +103,22 @@ mb.on("ready", () => {
 	}
 
 	if (process.platform === "darwin") {
-		// Replace the menubar library's built-in click toggle with our own so we
-		// can debounce: macOS fires both 'click' and 'double-click' on a rapid
-		// double-tap, causing the window to show then immediately hide. A 200 ms
-		// guard ignores any click that arrives within the double-click window.
+		// The menubar library registers both 'click' and 'double-click' on the
+		// tray, and showWindow() recalculates position from tray bounds (bottom-
+		// right). Replace both with a single debounced 'click' that centers the
+		// window and calls BrowserWindow.show() directly to skip repositioning.
 		mb.tray.removeAllListeners("click");
+		mb.tray.removeAllListeners("double-click");
 		let lastClick = 0;
 		mb.tray.on("click", () => {
 			const now = Date.now();
-			if (now - lastClick < 200) return;
+			if (now - lastClick < 300) return;
 			lastClick = now;
 			if (mb.window?.isVisible()) {
 				mb.hideWindow();
 			} else {
 				centerWindow();
-				mb.showWindow();
+				mb.window?.show();
 			}
 		});
 	}
