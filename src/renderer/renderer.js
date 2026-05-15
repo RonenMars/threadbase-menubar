@@ -1,5 +1,5 @@
 const params = new URLSearchParams(window.location.search);
-const port = parseInt(params.get("port") || "3456", 10);
+const port = parseInt(params.get("port") || "8766", 10);
 const BASE_URL = `http://localhost:${port}`;
 const POLL_INTERVAL = 5000;
 

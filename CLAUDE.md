@@ -28,9 +28,14 @@ No test runner is configured yet.
 
 | Env var | Default | Description |
 |---|---|---|
-| `THREADBASE_PORT` | `3456` | Port the streamer server is listening on |
+| `THREADBASE_PORT` | (see below) | Port the streamer server is listening on. Override only — leave unset to auto-detect. |
 
-Server config is read from `~/.threadbase/server.yaml` by the streamer itself; the menubar only needs the port.
+**Port resolution order** (main.ts):
+1. `THREADBASE_PORT` env var, if set
+2. `port:` field in `~/.threadbase/server.yaml`, if readable
+3. Fallback constant `8766` (matches the streamer's deployed default)
+
+The menubar parses only the `port:` line from `server.yaml` with a regex — it does not depend on a YAML library.
 
 ## Key behaviors
 

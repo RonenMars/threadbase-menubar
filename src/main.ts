@@ -5,9 +5,22 @@ import * as os from "os";
 import * as path from "path";
 import { createIcon } from "./icons";
 
+function readPortFromServerYaml(): number | null {
+	try {
+		const yamlPath = path.join(os.homedir(), ".threadbase", "server.yaml");
+		const contents = fs.readFileSync(yamlPath, "utf8");
+		const match = contents.match(/^\s*port\s*:\s*(\d+)\s*$/m);
+		if (!match) return null;
+		const parsed = parseInt(match[1], 10);
+		return Number.isFinite(parsed) ? parsed : null;
+	} catch {
+		return null;
+	}
+}
+
 const port = process.env.THREADBASE_PORT
 	? parseInt(process.env.THREADBASE_PORT, 10)
-	: 3456;
+	: (readPortFromServerYaml() ?? 8766);
 
 // ── Config ──────────────────────────────────────────────────────────────────
 
@@ -114,11 +127,18 @@ mb.on("ready", () => {
 			const now = Date.now();
 			if (now - lastClick < 300) return;
 			lastClick = now;
-			if (mb.window?.isVisible()) {
-				mb.hideWindow();
+			const win = mb.window;
+			if (!win) return;
+			if (win.isVisible()) {
+				if (win.isFocused()) {
+					mb.hideWindow();
+				} else {
+					win.show();
+					win.focus();
+				}
 			} else {
 				centerWindow();
-				mb.window?.show();
+				win.show();
 			}
 		});
 	}
