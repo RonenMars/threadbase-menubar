@@ -11,10 +11,8 @@ document.getElementById("quit-btn").addEventListener("click", () => {
 });
 
 const closeBtn = document.getElementById("close-btn");
-if (window.electronAPI.platform === "win32") {
-	closeBtn.style.display = "flex";
-	closeBtn.addEventListener("click", () => window.electronAPI.close());
-}
+closeBtn.classList.add("visible");
+closeBtn.addEventListener("click", () => window.electronAPI.close());
 
 async function checkStatus() {
 	try {

@@ -49,6 +49,10 @@ The menubar parses only the `port:` line from `server.yaml` with a regex — it 
 
 **Config file:** `app.getPath('userData')/config.json` — currently stores `{ configured: boolean }`. Extend this (not a separate file) when persisting new preferences such as port or API key.
 
+**Close button:** a ✕ button is shown in the popup header on every platform. It sends `close-window` IPC which calls `mb.window?.hide()` directly — *not* `mb.hideWindow()`. The library's `hideWindow()` short-circuits when its internal visibility flag is out of sync with the actual window state, which happens on macOS because the custom tray-click handler calls `win.show()` directly instead of `mb.showWindow()`. Going through `BrowserWindow.hide()` bypasses the stale-flag check.
+
+**CSP and inline styles:** `index.html` sets `style-src 'self'` in its CSP meta tag, which blocks **all** inline `style="…"` attributes and JS-set `element.style.foo = …` assignments. Drive visibility and other style toggles via CSS classes (`classList.add/remove`), not inline styles. A previous version hid the close button with `style="display:none"`; CSP silently stripped the attribute and the button rendered everywhere.
+
 ## IPC pattern
 
 Follow the existing conventions when adding new channels:
@@ -61,8 +65,6 @@ Follow the existing conventions when adding new channels:
 ## Windows-specific behavior
 
 **Popup positioning:** on Windows the tray icon often lives in the overflow ("hidden icons") area. Positioning the popup near the tray icon overlaps with the overflow menu, so the window is instead centered on screen. This is done via the `after-create-window` event: opacity is set to 0 on creation, then on every `show` event the window is repositioned to center before opacity is restored to 1. This prevents any visible jump from the tray position to the center.
-
-**Close button:** a ✕ button is shown in the popup header only on `win32` (detected via `window.electronAPI.platform`). It sends `close-window` IPC which calls `mb.hideWindow()` — it does not quit the app.
 
 **Launching from scripts:** always use `electron.exe` directly from `node_modules\electron\dist\electron.exe`. Do NOT use `node_modules\.bin\electron.cmd` — the `.cmd` wrapper spawns a cmd.exe parent that exits and takes the Electron process with it. Pass required env vars explicitly via `Start-Process -Environment` since they are not inherited from the calling shell.
 

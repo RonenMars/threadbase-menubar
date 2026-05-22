@@ -166,5 +166,11 @@ ipcMain.on("set-login-setting", (_event, enable: boolean) => {
 	writeConfig({ configured: true });
 });
 
-ipcMain.on("close-window", () => mb.hideWindow());
+ipcMain.on("close-window", () => {
+	// Use BrowserWindow.hide() directly because mb.hideWindow() short-circuits
+	// when its internal visibility flag is out of sync with the actual window
+	// state — which happens on macOS where the custom tray-click handler calls
+	// win.show() directly instead of mb.showWindow().
+	mb.window?.hide();
+});
 ipcMain.on("quit", () => app.quit());
