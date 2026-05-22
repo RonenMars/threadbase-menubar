@@ -107,6 +107,29 @@ function centerWindow(): void {
 	);
 }
 
+// Position the popup just below the tray icon, horizontally centered on it,
+// clamped to the active display's work area so it never spills off-screen.
+function positionUnderTray(trayBounds: Electron.Rectangle): void {
+	if (!mb.window) return;
+	const display = screen.getDisplayMatching(trayBounds);
+	const { workArea } = display;
+	const [w, h] = mb.window.getSize();
+	const trayCenterX = trayBounds.x + Math.round(trayBounds.width / 2);
+	const x = Math.min(
+		Math.max(trayCenterX - Math.round(w / 2), workArea.x),
+		workArea.x + workArea.width - w,
+	);
+	const y = Math.min(
+		trayBounds.y + trayBounds.height,
+		workArea.y + workArea.height - h,
+	);
+	mb.window.setPosition(x, y);
+}
+
+function displayIdContaining(rect: Electron.Rectangle): number {
+	return screen.getDisplayMatching(rect).id;
+}
+
 mb.on("ready", () => {
 	mb.tray.setToolTip("Threadbase Streamer");
 	mb.window?.on("blur", () => mb.hideWindow());
@@ -118,26 +141,30 @@ mb.on("ready", () => {
 	if (process.platform === "darwin") {
 		// The menubar library registers both 'click' and 'double-click' on the
 		// tray, and showWindow() recalculates position from tray bounds (bottom-
-		// right). Replace both with a single debounced 'click' that centers the
-		// window and calls BrowserWindow.show() directly to skip repositioning.
+		// right). Replace both with a single debounced 'click' that anchors the
+		// popup under the clicked tray icon (on the display it lives on) and
+		// calls BrowserWindow.show() directly to skip repositioning.
 		mb.tray.removeAllListeners("click");
 		mb.tray.removeAllListeners("double-click");
 		let lastClick = 0;
-		mb.tray.on("click", () => {
+		mb.tray.on("click", (_event, bounds) => {
 			const now = Date.now();
 			if (now - lastClick < 300) return;
 			lastClick = now;
 			const win = mb.window;
 			if (!win) return;
 			if (win.isVisible()) {
-				if (win.isFocused()) {
-					mb.hideWindow();
+				const sameDisplay =
+					displayIdContaining(win.getBounds()) === displayIdContaining(bounds);
+				if (sameDisplay && win.isFocused()) {
+					win.hide();
 				} else {
+					positionUnderTray(bounds);
 					win.show();
 					win.focus();
 				}
 			} else {
-				centerWindow();
+				positionUnderTray(bounds);
 				win.show();
 			}
 		});

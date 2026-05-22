@@ -51,6 +51,8 @@ The menubar parses only the `port:` line from `server.yaml` with a regex — it 
 
 **Close button:** a ✕ button is shown in the popup header on every platform. It sends `close-window` IPC which calls `mb.window?.hide()` directly — *not* `mb.hideWindow()`. The library's `hideWindow()` short-circuits when its internal visibility flag is out of sync with the actual window state, which happens on macOS because the custom tray-click handler calls `win.show()` directly instead of `mb.showWindow()`. Going through `BrowserWindow.hide()` bypasses the stale-flag check.
 
+**Multi-display positioning (macOS):** the tray-click handler receives `bounds` (the clicked tray icon's screen rect) and calls `positionUnderTray(bounds)`, which uses `screen.getDisplayMatching(bounds)` to anchor the popup on the same display as the clicked icon — *not* the primary display. If the popup is already open on a different display when the tray is clicked, it's repositioned under the new tray and re-shown. The same-display check uses `screen.getDisplayMatching(...).id` on both the window's current bounds and the tray bounds.
+
 **CSP and inline styles:** `index.html` sets `style-src 'self'` in its CSP meta tag, which blocks **all** inline `style="…"` attributes and JS-set `element.style.foo = …` assignments. Drive visibility and other style toggles via CSS classes (`classList.add/remove`), not inline styles. A previous version hid the close button with `style="display:none"`; CSP silently stripped the attribute and the button rendered everywhere.
 
 ## IPC pattern
