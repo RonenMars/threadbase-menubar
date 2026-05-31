@@ -66,6 +66,16 @@ npm run package:mac        # full universal .dmg in release/
 
 `package:mac` produces a signed + notarised build only when `APPLE_TEAM_ID`, `APPLE_API_KEY_ID`, `APPLE_API_ISSUER`, and `APPLE_API_KEY` env vars are set (typically sourced from `~/.threadbase/menubar-signing.env`). Without them, the build is ad-hoc signed — fine for local use, quarantined when transported.
 
+## Install (Linux)
+
+Download `Threadbase Menubar-<version>-x64.AppImage` from the [Releases page](https://github.com/RonenMars/threadbase-menubar/releases), `chmod +x` it, and run.
+
+## Install (Windows)
+
+Download `Threadbase Menubar-<version>-x64.exe` from the [Releases page](https://github.com/RonenMars/threadbase-menubar/releases) and run the installer.
+
+**Unsigned**: Windows SmartScreen will show an "Unknown Publisher" warning on first launch. Click "More info" → "Run anyway" to proceed. Code signing requires a paid cert; will revisit if there's demand.
+
 ## Configuration
 
 | Env var | Default | Description |

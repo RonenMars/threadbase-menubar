@@ -60,5 +60,19 @@ module.exports = {
 		category: "Utility",
 		artifactName: "${productName}-${version}-${arch}.${ext}",
 	},
+	win: {
+		// Unsigned NSIS installer. Will trigger Windows SmartScreen "Unknown
+		// Publisher" warning on download — see README. Code signing requires
+		// a paid cert (~$200/yr); revisit when there's demand.
+		target: [{ target: "nsis", arch: ["x64"] }],
+		// electron-builder auto-generates .ico from this PNG.
+		icon: "build/icon.png",
+		artifactName: "${productName}-${version}-${arch}.${ext}",
+	},
+	nsis: {
+		oneClick: false,
+		allowToChangeInstallationDirectory: true,
+		perMachine: false,
+	},
 	afterSign: "scripts/notarize.cjs",
 };
