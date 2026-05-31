@@ -20,7 +20,7 @@ Menu bar status indicator for [Threadbase Streamer](https://github.com/RonenMars
 ## Requirements
 
 - Node.js 18+
-- The [Threadbase Streamer](https://github.com/RonenMars/threadbase-streamer) running on `localhost` (default port `3456`)
+- The [Threadbase Streamer](https://github.com/RonenMars/threadbase-streamer) running on `localhost` (default port `8766`)
 
 ## Install (macOS)
 
@@ -70,12 +70,12 @@ npm run package:mac        # full universal .dmg in release/
 
 | Env var | Default | Description |
 |---|---|---|
-| `THREADBASE_PORT` | `3456` | Port the streamer server is listening on |
+| `THREADBASE_PORT` | auto-detected | Override only. If unset, the app reads the `port:` field from `~/.threadbase/server.yaml`, falling back to `8766` if that's unreadable. |
 
 Example:
 
 ```bash
-THREADBASE_PORT=8766 npm start
+THREADBASE_PORT=9000 npm start
 ```
 
 ## How it works

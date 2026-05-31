@@ -2,6 +2,12 @@
 	"name": "threadbase-menubar",
 	"version": "0.1.0",
 	"description": "Menu bar status indicator for Threadbase Streamer",
+	"license": "MIT",
+	"author": "Ronen Mars",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/RonenMars/threadbase-menubar.git"
+	},
 	"main": "dist/main.js",
 	"scripts": {
 		"start": "npm run build && electron .",
