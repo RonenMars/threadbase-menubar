@@ -254,7 +254,10 @@ jobs:
 
   build-windows:
     name: Build Windows
-    runs-on: windows-latest
+    # Pinned explicitly: GitHub will silently redirect windows-latest to this
+    # image on 2026-06-15. Pinning now lets us discover any toolchain breakage
+    # (VS 2026, Node 22 default, etc.) on our schedule instead of at cutover.
+    runs-on: windows-2025-vs2026
     needs: build  # macOS job creates the release first; we upload to it
     timeout-minutes: 30
     permissions:
