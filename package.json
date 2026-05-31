@@ -16,7 +16,8 @@
 		"build:icon": "./scripts/build-app-icon.sh",
 		"dev": "npm run build && electron .",
 		"package:mac": "npm run build && electron-builder --mac -c electron-builder.config.js",
-		"package:mac:dir": "npm run build && electron-builder --mac --dir -c electron-builder.config.js"
+		"package:mac:dir": "npm run build && electron-builder --mac --dir -c electron-builder.config.js",
+		"package:linux": "npm run build && electron-builder --linux -c electron-builder.config.js"
 	},
 	"dependencies": {
 		"menubar": "^9.3.0"

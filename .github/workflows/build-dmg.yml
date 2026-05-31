@@ -20,9 +20,9 @@ jobs:
       contents: write  # needed for the "latest-main" prerelease step
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 20
           cache: npm
@@ -98,7 +98,7 @@ jobs:
           spctl --assess --type execute --verbose=2 "$APP"
 
       - name: Upload DMG as workflow artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: Threadbase-Menubar-dmg
           path: release/*.dmg
@@ -146,3 +146,77 @@ jobs:
               --title "$TAG_NAME" \
               --generate-notes
           fi
+
+  build-linux:
+    name: Build Linux
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write  # needed for publishing to releases
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build AppImage (x64)
+        run: npm run package:linux
+
+      - name: Upload AppImage as workflow artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: Threadbase-Menubar-appimage
+          path: release/*.AppImage
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish to rolling "latest-main" prerelease
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          TAG="latest-main"
+          # The macOS job recreates this release on every main push. We just
+          # upload our AppImages to it; --clobber handles re-runs idempotently.
+          # If the macOS job hasn't created the release yet, wait briefly and
+          # retry — both jobs run in parallel.
+          for i in 1 2 3 4 5 6; do
+            if gh release view "$TAG" >/dev/null 2>&1; then
+              gh release upload "$TAG" release/*.AppImage --clobber
+              exit 0
+            fi
+            echo "Release $TAG not yet present (attempt $i); sleeping 10s"
+            sleep 10
+          done
+          echo "error: $TAG release was never created by the macOS job" >&2
+          exit 1
+
+      - name: Publish stable release for version tag
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          # The macOS job may or may not have created the release yet — both
+          # jobs run in parallel. Retry briefly, then create if absent.
+          for i in 1 2 3 4 5 6; do
+            if gh release view "$TAG_NAME" >/dev/null 2>&1; then
+              gh release upload "$TAG_NAME" release/*.AppImage --clobber
+              exit 0
+            fi
+            echo "Release $TAG_NAME not yet present (attempt $i); sleeping 10s"
+            sleep 10
+          done
+          # Macos job hasn't created it (maybe failed/slow). Create here.
+          echo "Creating new release $TAG_NAME from linux job"
+          gh release create "$TAG_NAME" release/*.AppImage \
+            --title "$TAG_NAME" \
+            --generate-notes

@@ -52,5 +52,13 @@ module.exports = {
 		title: "Threadbase Menubar ${version}",
 		writeUpdateInfo: false,
 	},
+	linux: {
+		// Start with x64 only; arm64 AppImage on x64 runner needs qemu and
+		// has been finicky. Add arm64 as a follow-up if there's demand.
+		target: [{ target: "AppImage", arch: ["x64"] }],
+		icon: "build/icon.png",
+		category: "Utility",
+		artifactName: "${productName}-${version}-${arch}.${ext}",
+	},
 	afterSign: "scripts/notarize.cjs",
 };
