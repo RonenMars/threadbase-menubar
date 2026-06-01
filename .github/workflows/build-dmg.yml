@@ -166,19 +166,20 @@ jobs:
           TITLE="Latest main build ($SHORT_SHA)"
           NOTES="Rolling build from $COMMIT_SHA. Replaced on every push to main — for stable downloads, use a tagged release."
 
-          # Additive publish: if the release exists, upload our DMG to it (so
-          # parallel jobs' artefacts coexist). If absent, create with our DMG.
-          # The previous delete-and-recreate approach wiped artefacts uploaded
-          # by parallel linux/windows jobs.
+          # Delete + recreate so the release's target_commitish tracks the
+          # latest SHA. Downstream consumers (e.g. tb-streamer's
+          # scripts/lib/fetch-menubar.{sh,ps1}) match the release SHA to the
+          # submodule pointer; a stale target_commitish breaks the match.
+          # Safe to delete-then-create because the linux/windows jobs declare
+          # `needs: build`, so they run AFTER this step finishes.
           if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" release/*.dmg --clobber
-          else
-            gh release create "$TAG" release/*.dmg \
-              --title "$TITLE" \
-              --notes "$NOTES" \
-              --prerelease \
-              --target "$COMMIT_SHA"
+            gh release delete "$TAG" --yes --cleanup-tag
           fi
+          gh release create "$TAG" release/*.dmg \
+            --title "$TITLE" \
+            --notes "$NOTES" \
+            --prerelease \
+            --target "$COMMIT_SHA"
 
       - name: Publish stable release for version tag
         if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
