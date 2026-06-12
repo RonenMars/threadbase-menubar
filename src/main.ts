@@ -54,18 +54,31 @@ const LINUX_AUTOSTART = path.join(
 	"threadbase-menubar.desktop",
 );
 
+// When running unpackaged (in-tree electron), execPath is the bare electron
+// binary — registering it without the app path argument makes login open
+// Electron's default welcome window instead of this app. Pass the app dir
+// explicitly; packaged builds need no args. The same options must be passed
+// to getLoginItemSettings or the registered entry won't be recognized.
+function loginItemOptions(): { path?: string; args?: string[] } {
+	if (app.isPackaged) return {};
+	return { path: process.execPath, args: [app.getAppPath()] };
+}
+
 function getLoginSetting(): boolean {
 	if (process.platform === "linux") return fs.existsSync(LINUX_AUTOSTART);
-	return app.getLoginItemSettings().openAtLogin;
+	return app.getLoginItemSettings(loginItemOptions()).openAtLogin;
 }
 
 function setLoginSetting(enable: boolean): void {
 	if (process.platform === "linux") {
 		if (enable) {
+			const exec = app.isPackaged
+				? process.execPath
+				: `${process.execPath} ${app.getAppPath()}`;
 			fs.mkdirSync(path.dirname(LINUX_AUTOSTART), { recursive: true });
 			fs.writeFileSync(
 				LINUX_AUTOSTART,
-				`[Desktop Entry]\nType=Application\nName=Threadbase Menubar\nExec=${process.execPath}\nHidden=false\nX-GNOME-Autostart-enabled=true\n`,
+				`[Desktop Entry]\nType=Application\nName=Threadbase Menubar\nExec=${exec}\nHidden=false\nX-GNOME-Autostart-enabled=true\n`,
 			);
 		} else {
 			try {
@@ -74,7 +87,11 @@ function setLoginSetting(enable: boolean): void {
 		}
 		return;
 	}
-	app.setLoginItemSettings({ openAtLogin: enable, openAsHidden: true });
+	app.setLoginItemSettings({
+		openAtLogin: enable,
+		openAsHidden: true,
+		...loginItemOptions(),
+	});
 }
 
 // ── App ──────────────────────────────────────────────────────────────────────
