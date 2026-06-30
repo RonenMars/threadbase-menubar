@@ -16,6 +16,10 @@ const signing = process.env.APPLE_TEAM_ID
 			hardenedRuntime: true,
 			entitlements: "build/entitlements.mac.plist",
 			entitlementsInherit: "build/entitlements.mac.plist",
+			// Fail the build if signing silently skips (e.g. on PR builds without
+			// CSC_FOR_PULL_REQUEST) instead of shipping an ad-hoc-signed app that
+			// only fails later at notarisation.
+			forceCodeSigning: true,
 		}
 	: {
 			// Force ad-hoc signing — bypasses keychain auto-discovery.
