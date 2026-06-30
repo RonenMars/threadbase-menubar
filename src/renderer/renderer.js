@@ -18,6 +18,7 @@ async function checkStatus() {
 	try {
 		const res = await fetch(`${BASE_URL}/healthz`, {
 			signal: AbortSignal.timeout(3000),
+			headers: { "X-Client": "menubar" },
 		});
 		const data = await res.json();
 		setStatus(data.ok ? "running" : "stopped", data.version ?? null);
