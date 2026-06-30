@@ -70,7 +70,20 @@ module.exports = async function notarize(context) {
 		`  • notarisation accepted (${Math.round((Date.now() - t0) / 1000)}s)`,
 	);
 
+	// The notarytool ticket takes 30–120s to propagate to Apple's CloudKit CDN
+	// after notarisation reports success. Stapling before then fails with exit 65
+	// ("Record not found"). Retry until the ticket lands.
+	// ponytail: max ~5-min retry window (10 × 30s); shorten the delay if Apple's CDN gets faster.
 	console.log(`  • stapling ticket to ${appPath}`);
-	await runXcrun(["stapler", "staple", appPath]);
+	for (let attempt = 1; ; attempt++) {
+		try {
+			await runXcrun(["stapler", "staple", appPath]);
+			break;
+		} catch (err) {
+			if (attempt >= 10) throw err;
+			console.log(`  • staple attempt ${attempt} failed (${err.message}); retrying in 30s`);
+			await new Promise((r) => setTimeout(r, 30_000));
+		}
+	}
 	console.log("  • staple complete");
 };
