@@ -1,7 +1,7 @@
 # Fix: xcrun stapler CDN race in CI notarization
 
 > **Date:** 2026-06-30
-> **Status:** Planned. Brief captured from `fix-menubar-stapler-race.md` in the repo root.
+> **Status:** Implemented in `scripts/notarize.cjs`. Brief captured from `fix-menubar-stapler-race.md` in the repo root.
 > **Scope:** `scripts/notarize.cjs`, CI "Build, sign, notarize" job.
 
 ---
