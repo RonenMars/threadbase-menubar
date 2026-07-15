@@ -105,10 +105,40 @@ function setLoginSetting(enable: boolean): void {
 
 let logsWindow: BrowserWindow | null = null;
 
+function displayForLogsWindow(): Electron.Display {
+	// Prefer the display that currently hosts the menubar popup (where View Logs was clicked).
+	if (mb.window && !mb.window.isDestroyed()) {
+		return screen.getDisplayMatching(mb.window.getBounds());
+	}
+	// Fallback: display under the cursor.
+	return screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
+}
+
+function centerWindowOnDisplay(
+	win: BrowserWindow,
+	display: Electron.Display,
+): void {
+	const { workArea } = display;
+	const [w, h] = win.getSize();
+	win.setPosition(
+		workArea.x + Math.round((workArea.width - w) / 2),
+		workArea.y + Math.round((workArea.height - h) / 2),
+	);
+}
+
 function createLogsWindow(): void {
 	trackLog("[logs] open-logs requested");
+	const display = displayForLogsWindow();
+	trackLog("[logs] target display", {
+		id: display.id,
+		bounds: display.bounds,
+		workArea: display.workArea,
+	});
+
 	if (logsWindow && !logsWindow.isDestroyed()) {
 		trackLog("[logs] focusing existing logs window");
+		centerWindowOnDisplay(logsWindow, display);
+		logsWindow.show();
 		logsWindow.focus();
 		return;
 	}
@@ -134,7 +164,11 @@ function createLogsWindow(): void {
 
 	logsWindow.once("ready-to-show", () => {
 		trackLog("[logs] logs window ready-to-show");
-		logsWindow?.show();
+		if (logsWindow && !logsWindow.isDestroyed()) {
+			centerWindowOnDisplay(logsWindow, display);
+			logsWindow.show();
+			logsWindow.focus();
+		}
 	});
 
 	logsWindow.on("closed", () => {
