@@ -17,6 +17,7 @@ The Logs Viewer is a new window in the menubar app that displays real-time logs 
 
 ### Filtering
 - **Level filter**: Filter logs by level (all, debug, info, warn, error)
+- **Load all**: Load the full readable log window into memory so search covers more than the latest page
 - **Search**: Filter logs by substring match across message, level, component, and timestamp (⌘/Ctrl+F to focus, Esc to clear)
 - **Log count**: Shows the number of currently displayed logs (and total when filters are active)
 
@@ -74,9 +75,10 @@ The endpoint reads from `~/.threadbase/logs/dev.log` and returns the most recent
 2. **View Logs**: Click the "View Logs" button at the bottom of the popup
 3. **Filter logs**: Use the level dropdown to filter by log level
 4. **Search logs**: Type in the Search field to filter by message text (⌘/Ctrl+F)
-5. **Auto-scroll**: Toggle auto-scroll on/off as needed
-6. **Clear logs**: Click the trash icon to clear the current view
-7. **Refresh**: Click the refresh icon to manually update logs
+5. **Load all**: Click "Load all" to pull the full readable window into memory before searching
+6. **Auto-scroll**: Toggle auto-scroll on/off as needed
+7. **Clear logs**: Click the trash icon to clear the current view
+8. **Refresh**: Click the refresh icon to manually update logs
 
 ## Development
 

@@ -15,6 +15,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
 		since?: number;
 		before?: number;
 		limit?: number;
+		all?: boolean;
 		source?: string;
 	}): Promise<{
 		ok: boolean;

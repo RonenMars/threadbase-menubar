@@ -75,19 +75,54 @@
       </div>
       <div class="control-group">
         <button type="button" id="load-older-btn" class="load-older-btn" title="Load older logs from the recent file window">Load older</button>
+        <button type="button" id="load-all-btn" class="load-older-btn" title="Load all logs from the recent file window for searching">Load all</button>
         <span id="log-count" class="log-count">0 loaded</span>
       </div>
     </div>
 
     <div class="logs-container" id="logs-container">
-      <div class="logs-placeholder">
+      <div class="logs-placeholder" id="logs-placeholder">
         <span class="placeholder-icon">📋</span>
         <span class="placeholder-text">No logs yet. Waiting for data...</span>
+      </div>
+      <div class="virtual-list hidden" id="virtual-list">
+        <div class="virtual-spacer" id="virtual-spacer">
+          <div class="virtual-window" id="virtual-window"></div>
+        </div>
       </div>
     </div>
 
     <div class="footer">
       <span id="status-text" class="status-text">Connecting...</span>
+    </div>
+  </div>
+
+  <div id="load-all-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="load-all-modal-title">
+    <div class="modal-backdrop" data-modal-dismiss="load-all"></div>
+    <div class="modal-card">
+      <h2 id="load-all-modal-title" class="modal-title">Load all logs?</h2>
+      <p id="load-all-modal-body" class="modal-body"></p>
+      <div class="modal-actions">
+        <button type="button" id="load-all-cancel" class="modal-btn">Cancel</button>
+        <button type="button" id="load-all-confirm" class="modal-btn modal-btn-primary">Load all</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="log-detail-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="log-detail-title">
+    <div class="modal-backdrop" data-modal-dismiss="log-detail"></div>
+    <div class="modal-card modal-card-wide">
+      <div class="modal-header">
+        <h2 id="log-detail-title" class="modal-title">Log details</h2>
+        <button type="button" id="log-detail-close" class="icon-btn" aria-label="Close details">✕</button>
+      </div>
+      <div id="log-detail-meta" class="log-detail-meta"></div>
+      <pre id="log-detail-message" class="log-detail-message"></pre>
+      <pre id="log-detail-extras" class="log-detail-extras hidden"></pre>
+      <div class="modal-actions">
+        <button type="button" id="log-detail-copy" class="modal-btn">Copy</button>
+        <button type="button" id="log-detail-done" class="modal-btn modal-btn-primary">Close</button>
+      </div>
     </div>
   </div>
   <script src="logs-viewer.js"></script>

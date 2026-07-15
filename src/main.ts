@@ -323,6 +323,7 @@ ipcMain.handle(
 			since?: number;
 			before?: number;
 			limit?: number;
+			all?: boolean;
 			source?: string;
 		} = {},
 	) => {
@@ -331,7 +332,8 @@ ipcMain.handle(
 			typeof opts.before === "number" && Number.isFinite(opts.before)
 				? Math.max(0, opts.before)
 				: null;
-		const limit = Math.min(Math.max(1, opts.limit ?? 500), 2000);
+		const wantAll = opts.all === true;
+		const limit = Math.min(Math.max(1, opts.limit ?? (wantAll ? 20000 : 500)), 20000);
 		const logsDir = path.join(os.homedir(), ".threadbase", "logs");
 		const preferred =
 			opts.source === "stdout" ||
@@ -392,7 +394,17 @@ ipcMain.handle(
 			let offset: number;
 			let oldestIndex: number;
 
-			if (before !== null) {
+			if (wantAll) {
+				// Load the full readable window (newest `limit` if over cap).
+				if (allLines.length <= limit) {
+					lines = allLines;
+					oldestIndex = 0;
+				} else {
+					lines = allLines.slice(-limit);
+					oldestIndex = allLines.length - lines.length;
+				}
+				offset = allLines.length;
+			} else if (before !== null) {
 				// Load older history ending just before `before`.
 				const end = Math.min(before, allLines.length);
 				const startIdx = Math.max(0, end - limit);
