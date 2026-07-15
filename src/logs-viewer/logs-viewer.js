@@ -127,32 +127,22 @@ function filterLogs() {
 }
 
 function renderLogs() {
+  // Always remove previous entries first (including clear → empty).
+  logsContainer.querySelectorAll('.log-entry').forEach((el) => el.remove());
+
+  const placeholder = logsContainer.querySelector('.logs-placeholder');
   if (filteredLogs.length === 0) {
     logsContainer.classList.remove('has-logs');
-    const placeholder = logsContainer.querySelector('.logs-placeholder');
-    if (placeholder) {
-      placeholder.style.display = 'flex';
-    }
+    if (placeholder) placeholder.style.display = 'flex';
   } else {
     logsContainer.classList.add('has-logs');
-    const placeholder = logsContainer.querySelector('.logs-placeholder');
-    if (placeholder) {
-      placeholder.style.display = 'none';
-    }
-    
-    const existingLogs = logsContainer.querySelectorAll('.log-entry');
-    existingLogs.forEach(el => el.remove());
-    
-    filteredLogs.forEach(log => {
-      const logEl = createLogElement(log);
-      logsContainer.appendChild(logEl);
+    if (placeholder) placeholder.style.display = 'none';
+    filteredLogs.forEach((log) => {
+      logsContainer.appendChild(createLogElement(log));
     });
-    
-    if (autoScroll) {
-      scrollToBottom();
-    }
+    if (autoScroll) scrollToBottom();
   }
-  
+
   logCountEl.textContent = `${filteredLogs.length} logs`;
 }
 
