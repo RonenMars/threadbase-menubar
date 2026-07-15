@@ -10,6 +10,7 @@ document.getElementById("quit-btn").addEventListener("click", () => {
 	window.electronAPI.quit();
 });
 document.getElementById("logs-btn").addEventListener("click", () => {
+	console.log("[renderer] View Logs clicked");
 	window.electronAPI.openLogs();
 });
 
