@@ -28,8 +28,6 @@ const pollIntervalSelect = document.getElementById("poll-interval");
 const customIntervalInput = document.getElementById("custom-interval");
 const customIntervalUnit = document.getElementById("custom-interval-unit");
 const refreshBtn = document.getElementById("refresh-btn");
-const refreshSpinner = document.getElementById("refresh-spinner");
-const refreshIndicator = document.getElementById("refresh-indicator");
 const clearBtn = document.getElementById("clear-btn");
 const closeBtn = document.getElementById("close-btn");
 
@@ -43,26 +41,16 @@ function setRefreshing(active) {
       clearTimeout(refreshHideTimer);
       refreshHideTimer = null;
     }
-    refreshSpinner?.classList.add("active");
     refreshBtn?.classList.add("spinning");
-    if (refreshIndicator) {
-      refreshIndicator.textContent = "Refreshing…";
-      refreshIndicator.classList.add("active");
-    }
     return;
   }
 
   refreshDepth = Math.max(0, refreshDepth - 1);
   if (refreshDepth > 0) return;
 
-  // Keep spinner visible briefly so fast polls are still noticeable.
+  // Keep spin visible briefly so fast polls are still noticeable.
   refreshHideTimer = setTimeout(() => {
-    refreshSpinner?.classList.remove("active");
     refreshBtn?.classList.remove("spinning");
-    if (refreshIndicator) {
-      refreshIndicator.classList.remove("active");
-      refreshIndicator.textContent = "";
-    }
     refreshHideTimer = null;
   }, 250);
 }

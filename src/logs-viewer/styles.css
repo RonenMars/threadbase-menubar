@@ -357,21 +357,7 @@ body {
   outline: 1px solid #007acc;
 }
 
-.refresh-spinner {
-  width: 14px;
-  height: 14px;
-  border: 2px solid #3e3e42;
-  border-top-color: #4ec9b0;
-  border-radius: 50%;
-  opacity: 0;
-  transition: opacity 0.15s ease;
-  flex-shrink: 0;
-}
 
-.refresh-spinner.active {
-  opacity: 1;
-  animation: spin 0.7s linear infinite;
-}
 
 @keyframes spin {
   to { transform: rotate(360deg); }
@@ -386,15 +372,4 @@ body {
   gap: 12px;
 }
 
-.refresh-indicator {
-  margin-left: auto;
-  color: #4ec9b0;
-  font-size: 11px;
-  opacity: 0;
-  transition: opacity 0.15s ease;
-  min-height: 1em;
-}
 
-.refresh-indicator.active {
-  opacity: 1;
-}
