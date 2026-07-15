@@ -9,6 +9,7 @@ const MAX_LOGS = 1000;
 let logs = [];
 let filteredLogs = [];
 let currentFilter = 'all';
+let searchQuery = '';
 let autoScroll = true;
 let isConnected = false;
 let currentOffset = 0;
@@ -20,13 +21,51 @@ const logsContainer = document.getElementById("logs-container");
 const logCountEl = document.getElementById("log-count");
 const statusEl = document.getElementById("status-text");
 const levelFilter = document.getElementById("level-filter");
+const searchInput = document.getElementById("search-input");
+const searchClearBtn = document.getElementById("search-clear");
 const autoScrollCheckbox = document.getElementById("auto-scroll");
 const pollIntervalSelect = document.getElementById("poll-interval");
 const customIntervalInput = document.getElementById("custom-interval");
 const customIntervalUnit = document.getElementById("custom-interval-unit");
 const refreshBtn = document.getElementById("refresh-btn");
+const refreshSpinner = document.getElementById("refresh-spinner");
+const refreshIndicator = document.getElementById("refresh-indicator");
 const clearBtn = document.getElementById("clear-btn");
 const closeBtn = document.getElementById("close-btn");
+
+let refreshDepth = 0;
+let refreshHideTimer = null;
+
+function setRefreshing(active) {
+  if (active) {
+    refreshDepth += 1;
+    if (refreshHideTimer) {
+      clearTimeout(refreshHideTimer);
+      refreshHideTimer = null;
+    }
+    refreshSpinner?.classList.add("active");
+    refreshBtn?.classList.add("spinning");
+    if (refreshIndicator) {
+      refreshIndicator.textContent = "Refreshing…";
+      refreshIndicator.classList.add("active");
+    }
+    return;
+  }
+
+  refreshDepth = Math.max(0, refreshDepth - 1);
+  if (refreshDepth > 0) return;
+
+  // Keep spinner visible briefly so fast polls are still noticeable.
+  refreshHideTimer = setTimeout(() => {
+    refreshSpinner?.classList.remove("active");
+    refreshBtn?.classList.remove("spinning");
+    if (refreshIndicator) {
+      refreshIndicator.classList.remove("active");
+      refreshIndicator.textContent = "";
+    }
+    refreshHideTimer = null;
+  }, 250);
+}
 
 closeBtn.addEventListener("click", () => window.electronAPI.closeLogs());
 clearBtn.addEventListener("click", () => clearLogs());
@@ -43,6 +82,45 @@ refreshBtn.addEventListener("click", () => {
 levelFilter.addEventListener("change", (e) => {
   currentFilter = e.target.value;
   filterAndRenderLogs();
+});
+
+function updateSearchClearVisibility() {
+  searchClearBtn.classList.toggle("hidden", searchQuery.length === 0);
+}
+
+function setSearchQuery(value) {
+  searchQuery = value.trim();
+  if (searchInput.value !== value) {
+    searchInput.value = value;
+  }
+  updateSearchClearVisibility();
+  filterAndRenderLogs();
+}
+
+searchInput.addEventListener("input", (e) => {
+  searchQuery = e.target.value.trim();
+  updateSearchClearVisibility();
+  filterAndRenderLogs();
+});
+
+searchClearBtn.addEventListener("click", () => {
+  setSearchQuery("");
+  searchInput.focus();
+});
+
+searchInput.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {
+    e.preventDefault();
+    setSearchQuery("");
+  }
+});
+
+document.addEventListener("keydown", (e) => {
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "f") {
+    e.preventDefault();
+    searchInput.focus();
+    searchInput.select();
+  }
 });
 
 autoScrollCheckbox.addEventListener("change", (e) => {
@@ -172,12 +250,22 @@ function createLogElement(log) {
   return entry;
 }
 
+function logMatchesSearch(log, query) {
+  if (!query) return true;
+  const haystacks = [log.msg, log.level, log.component, log.time]
+    .filter(Boolean)
+    .map((value) => String(value).toLowerCase());
+  return haystacks.some((text) => text.includes(query));
+}
+
 function filterLogs() {
-  if (currentFilter === 'all') {
-    filteredLogs = [...logs];
-  } else {
-    filteredLogs = logs.filter(log => log.level === currentFilter);
-  }
+  const query = searchQuery.toLowerCase();
+  filteredLogs = logs.filter((log) => {
+    if (currentFilter !== 'all' && log.level !== currentFilter) {
+      return false;
+    }
+    return logMatchesSearch(log, query);
+  });
 }
 
 function renderLogs() {
@@ -185,9 +273,19 @@ function renderLogs() {
   logsContainer.querySelectorAll('.log-entry').forEach((el) => el.remove());
 
   const placeholder = logsContainer.querySelector('.logs-placeholder');
+  const placeholderText = placeholder?.querySelector('.placeholder-text');
+  const isFiltering = currentFilter !== 'all' || searchQuery.length > 0;
+
   if (filteredLogs.length === 0) {
     logsContainer.classList.remove('has-logs');
     if (placeholder) placeholder.style.display = 'flex';
+    if (placeholderText) {
+      placeholderText.textContent = logs.length === 0
+        ? 'No logs yet. Waiting for data...'
+        : isFiltering
+          ? 'No logs match the current filters.'
+          : 'No logs yet. Waiting for data...';
+    }
   } else {
     logsContainer.classList.add('has-logs');
     if (placeholder) placeholder.style.display = 'none';
@@ -197,7 +295,11 @@ function renderLogs() {
     if (autoScroll) scrollToBottom();
   }
 
-  logCountEl.textContent = `${filteredLogs.length} logs`;
+  if (isFiltering && logs.length !== filteredLogs.length) {
+    logCountEl.textContent = `${filteredLogs.length} / ${logs.length} logs`;
+  } else {
+    logCountEl.textContent = `${filteredLogs.length} logs`;
+  }
 }
 
 function filterAndRenderLogs() {
@@ -210,6 +312,7 @@ function scrollToBottom() {
 }
 
 async function fetchLogs() {
+  setRefreshing(true);
   try {
     const data = await window.electronAPI.fetchLogs({
       since: currentOffset,
@@ -241,6 +344,8 @@ async function fetchLogs() {
   } catch (error) {
     setStatus(false);
     console.error("Failed to fetch logs:", error);
+  } finally {
+    setRefreshing(false);
   }
 }
 
