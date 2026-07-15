@@ -113,6 +113,7 @@ body {
 
 .footer {
 	display: flex;
+	gap: 8px;
 	justify-content: flex-end;
 }
 
@@ -128,6 +129,16 @@ body {
 
 .btn:hover {
 	background: #48484a;
+}
+
+.btn-secondary {
+	background: #1c1c1e;
+	border: 1px solid #3a3a3c;
+}
+
+.btn-secondary:hover {
+	background: #2c2c2e;
+	border-color: #48484a;
 }
 
 .toggle {

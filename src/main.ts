@@ -1,9 +1,20 @@
-import { app, ipcMain, screen } from "electron";
+import { app, ipcMain, screen, BrowserWindow } from "electron";
 import { menubar } from "menubar";
 import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
 import { createIcon } from "./icons";
+
+const TRACK_LOG = path.join(os.homedir(), ".threadbase", "menubar-track.log");
+function trackLog(msg: string, data?: unknown): void {
+	const line = `${new Date().toISOString()} ${msg}${data !== undefined ? " " + JSON.stringify(data) : ""}\n`;
+	try {
+		fs.mkdirSync(path.dirname(TRACK_LOG), { recursive: true });
+		fs.appendFileSync(TRACK_LOG, line);
+	} catch {}
+	console.log(msg, data ?? "");
+}
+
 
 function readPortFromServerYaml(): number | null {
 	try {
@@ -17,6 +28,7 @@ function readPortFromServerYaml(): number | null {
 		return null;
 	}
 }
+
 
 const port = process.env.THREADBASE_PORT
 	? parseInt(process.env.THREADBASE_PORT, 10)
@@ -54,11 +66,6 @@ const LINUX_AUTOSTART = path.join(
 	"threadbase-menubar.desktop",
 );
 
-// When running unpackaged (in-tree electron), execPath is the bare electron
-// binary — registering it without the app path argument makes login open
-// Electron's default welcome window instead of this app. Pass the app dir
-// explicitly; packaged builds need no args. The same options must be passed
-// to getLoginItemSettings or the registered entry won't be recognized.
 function loginItemOptions(): { path?: string; args?: string[] } {
 	if (app.isPackaged) return {};
 	return { path: process.execPath, args: [app.getAppPath()] };
@@ -94,6 +101,86 @@ function setLoginSetting(enable: boolean): void {
 	});
 }
 
+// ── Logs Window ──────────────────────────────────────────────────────────────
+
+let logsWindow: BrowserWindow | null = null;
+
+function displayForLogsWindow(): Electron.Display {
+	// Prefer the display that currently hosts the menubar popup (where View Logs was clicked).
+	if (mb.window && !mb.window.isDestroyed()) {
+		return screen.getDisplayMatching(mb.window.getBounds());
+	}
+	// Fallback: display under the mouse pointer.
+	return screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
+}
+
+function centerWindowOnDisplay(
+	win: BrowserWindow,
+	display: Electron.Display,
+): void {
+	const { workArea } = display;
+	const [w, h] = win.getSize();
+	win.setPosition(
+		workArea.x + Math.round((workArea.width - w) / 2),
+		workArea.y + Math.round((workArea.height - h) / 2),
+	);
+}
+
+function createLogsWindow(): void {
+	trackLog("[logs] open-logs requested");
+	const display = displayForLogsWindow();
+	trackLog("[logs] target display", {
+		id: display.id,
+		bounds: display.bounds,
+		workArea: display.workArea,
+	});
+
+	if (logsWindow && !logsWindow.isDestroyed()) {
+		trackLog("[logs] focusing existing logs window");
+		centerWindowOnDisplay(logsWindow, display);
+		logsWindow.show();
+		logsWindow.focus();
+		return;
+	}
+
+	trackLog("[logs] creating new logs window");
+	logsWindow = new BrowserWindow({
+		width: 900,
+		height: 600,
+		minWidth: 600,
+		minHeight: 400,
+		title: "Threadbase Logs",
+		show: false,
+		webPreferences: {
+			preload: path.join(__dirname, "preload.js"),
+			nodeIntegration: false,
+			contextIsolation: true,
+		},
+	});
+
+	logsWindow.loadFile(path.join(__dirname, "logs-viewer/index.html"), {
+		query: { port: port.toString() },
+	});
+
+	logsWindow.once("ready-to-show", () => {
+		trackLog("[logs] logs window ready-to-show");
+		if (logsWindow && !logsWindow.isDestroyed()) {
+			centerWindowOnDisplay(logsWindow, display);
+			logsWindow.show();
+			logsWindow.focus();
+		}
+	});
+
+	logsWindow.on("closed", () => {
+		console.log("[logs] logs window closed");
+		logsWindow = null;
+	});
+
+	logsWindow.webContents.on("did-fail-load", (_e, code, desc, url) => {
+		console.error("[logs] failed to load", { code, desc, url });
+	});
+}
+
 // ── App ──────────────────────────────────────────────────────────────────────
 
 const mb = menubar({
@@ -124,8 +211,6 @@ function centerWindow(): void {
 	);
 }
 
-// Position the popup just below the tray icon, horizontally centered on it,
-// clamped to the active display's work area so it never spills off-screen.
 function positionUnderTray(trayBounds: Electron.Rectangle): void {
 	if (!mb.window) return;
 	const display = screen.getDisplayMatching(trayBounds);
@@ -148,28 +233,38 @@ function displayIdContaining(rect: Electron.Rectangle): number {
 }
 
 mb.on("ready", () => {
+	trackLog("[app] menubar ready");
 	mb.tray.setToolTip("Threadbase Streamer");
 	mb.window?.on("blur", () => mb.hideWindow());
+	mb.window?.on("show", () => console.log("[tray] popup shown"));
+	mb.window?.on("hide", () => console.log("[tray] popup hidden"));
 	if (!readConfig().configured) {
+		console.log("[app] first run — showing centered window");
 		centerWindow();
 		mb.showWindow();
 	}
 
 	if (process.platform === "darwin") {
-		// The menubar library registers both 'click' and 'double-click' on the
-		// tray, and showWindow() recalculates position from tray bounds (bottom-
-		// right). Replace both with a single debounced 'click' that anchors the
-		// popup under the clicked tray icon (on the display it lives on) and
-		// calls BrowserWindow.show() directly to skip repositioning.
 		mb.tray.removeAllListeners("click");
 		mb.tray.removeAllListeners("double-click");
 		let lastClick = 0;
 		mb.tray.on("click", (_event, bounds) => {
 			const now = Date.now();
-			if (now - lastClick < 300) return;
+			if (now - lastClick < 300) {
+				trackLog("[tray] click ignored (debounce)");
+				return;
+			}
 			lastClick = now;
 			const win = mb.window;
-			if (!win) return;
+			trackLog("[tray] click", {
+				visible: win?.isVisible() ?? false,
+				focused: win?.isFocused() ?? false,
+				bounds,
+			});
+			if (!win) {
+				console.warn("[tray] no window yet");
+				return;
+			}
 			if (win.isVisible()) {
 				const sameDisplay =
 					displayIdContaining(win.getBounds()) === displayIdContaining(bounds);
@@ -188,7 +283,6 @@ mb.on("ready", () => {
 	}
 });
 
-// Windows only: center popup since the tray lives in the overflow area.
 if (process.platform === "win32") {
 	mb.on("after-create-window", () => {
 		mb.window?.setOpacity(0);
@@ -210,11 +304,166 @@ ipcMain.on("set-login-setting", (_event, enable: boolean) => {
 	writeConfig({ configured: true });
 });
 
-ipcMain.on("close-window", () => {
-	// Use BrowserWindow.hide() directly because mb.hideWindow() short-circuits
-	// when its internal visibility flag is out of sync with the actual window
-	// state — which happens on macOS where the custom tray-click handler calls
-	// win.show() directly instead of mb.showWindow().
+ipcMain.on("close-window", (event) => {
+	const sender = BrowserWindow.fromWebContents(event.sender);
+	if (sender && logsWindow && sender.id === logsWindow.id) {
+		logsWindow.close();
+		return;
+	}
 	mb.window?.hide();
 });
+
 ipcMain.on("quit", () => app.quit());
+
+ipcMain.handle(
+	"fetch-logs",
+	async (
+		_event,
+		opts: {
+			since?: number;
+			before?: number;
+			limit?: number;
+			all?: boolean;
+			source?: string;
+		} = {},
+	) => {
+		const since = Math.max(0, opts.since ?? 0);
+		const before =
+			typeof opts.before === "number" && Number.isFinite(opts.before)
+				? Math.max(0, opts.before)
+				: null;
+		const wantAll = opts.all === true;
+		const limit = Math.min(Math.max(1, opts.limit ?? (wantAll ? 20000 : 500)), 20000);
+		const logsDir = path.join(os.homedir(), ".threadbase", "logs");
+		const preferred =
+			opts.source === "stdout" ||
+			opts.source === "stderr" ||
+			opts.source === "dev"
+				? opts.source
+				: null;
+
+		const pickSource = (): string => {
+			if (preferred) return preferred;
+			for (const candidate of ["stdout", "stderr", "dev"] as const) {
+				const p = path.join(logsDir, `${candidate}.log`);
+				try {
+					if (fs.existsSync(p) && fs.statSync(p).size > 0) return candidate;
+				} catch {}
+			}
+			return "stdout";
+		};
+
+		const source = pickSource();
+		const filePath = path.join(logsDir, `${source}.log`);
+		try {
+			if (!fs.existsSync(filePath)) {
+				return {
+					ok: true,
+					logs: [],
+					offset: 0,
+					oldestIndex: 0,
+					total: 0,
+					source,
+					message: `No log file found for source=${source}`,
+				};
+			}
+
+			const stats = fs.statSync(filePath);
+			// Keep a larger recent window so "Load older" / search have room to work.
+			const maxBytes = Math.min(stats.size, 8 * 1024 * 1024);
+			const start = Math.max(0, stats.size - maxBytes);
+			const fd = fs.openSync(filePath, "r");
+			let textContent = "";
+			try {
+				const buf = Buffer.alloc(maxBytes);
+				fs.readSync(fd, buf, 0, maxBytes, start);
+				textContent = buf.toString("utf8");
+			} finally {
+				fs.closeSync(fd);
+			}
+			if (start > 0) {
+				const firstNl = textContent.indexOf("\n");
+				if (firstNl >= 0) textContent = textContent.slice(firstNl + 1);
+			}
+
+			const allLines = textContent
+				.split("\n")
+				.filter((line) => line.trim() && !line.startsWith("==="));
+
+			let lines: string[];
+			let offset: number;
+			let oldestIndex: number;
+
+			if (wantAll) {
+				// Load the full readable window (newest `limit` if over cap).
+				if (allLines.length <= limit) {
+					lines = allLines;
+					oldestIndex = 0;
+				} else {
+					lines = allLines.slice(-limit);
+					oldestIndex = allLines.length - lines.length;
+				}
+				offset = allLines.length;
+			} else if (before !== null) {
+				// Load older history ending just before `before`.
+				const end = Math.min(before, allLines.length);
+				const startIdx = Math.max(0, end - limit);
+				lines = allLines.slice(startIdx, end);
+				oldestIndex = startIdx;
+				offset = allLines.length;
+			} else if (since > 0 && since < allLines.length) {
+				lines = allLines.slice(since, since + limit);
+				oldestIndex = since;
+				offset = since + lines.length;
+			} else if (since >= allLines.length && since > 0) {
+				lines = [];
+				oldestIndex = allLines.length;
+				offset = allLines.length;
+			} else {
+				// Initial: newest `limit` lines.
+				lines = allLines.slice(-limit);
+				oldestIndex = Math.max(0, allLines.length - lines.length);
+				offset = allLines.length;
+			}
+
+			return {
+				ok: true,
+				logs: lines,
+				offset,
+				oldestIndex,
+				total: allLines.length,
+				hasMore: offset < allLines.length,
+				hasOlder: oldestIndex > 0 || start > 0,
+				truncated: start > 0,
+				source,
+				fileSize: stats.size,
+				fileModified: stats.mtime.toISOString(),
+			};
+		} catch (error) {
+			trackLog("[logs] read error", { error: String(error), source });
+			return {
+				ok: false,
+				error: String(error),
+				logs: [],
+				offset: since,
+				oldestIndex: 0,
+				total: 0,
+				source,
+			};
+		}
+	},
+);
+
+
+ipcMain.on("open-logs", () => {
+	trackLog("[ipc] open-logs received");
+	createLogsWindow();
+	// Close the floating menubar popup once logs are opened.
+	mb.window?.hide();
+});
+
+ipcMain.on("close-logs", () => {
+	if (logsWindow && !logsWindow.isDestroyed()) {
+		logsWindow.close();
+	}
+});
