@@ -383,6 +383,8 @@ ipcMain.handle(
 ipcMain.on("open-logs", () => {
 	trackLog("[ipc] open-logs received");
 	createLogsWindow();
+	// Close the floating menubar popup once logs are opened.
+	mb.window?.hide();
 });
 
 ipcMain.on("close-logs", () => {
