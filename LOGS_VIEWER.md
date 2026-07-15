@@ -123,3 +123,30 @@ Possible improvements:
 - WebSocket-based real-time streaming
 - Persistent log history
 - Log highlighting/syntax highlighting for structured data
+
+## Live Mode Details
+
+The logs viewer operates in **live mode** with the following behavior:
+
+### How Live Mode Works
+
+1. **Polling**: Fetches logs from `/api/logs` every 2 seconds
+2. **Deduplication**: Tracks previously seen logs using a unique key (`timestamp:message:level`)
+3. **Incremental Updates**: Only appends new logs that haven't been displayed before
+4. **Memory Management**: Keeps a maximum of 1,000 logs in memory
+5. **Auto-scroll**: Automatically scrolls to show new logs as they arrive (toggleable)
+
+### Connection Status
+
+- **Connected (Live)**: Successfully fetching logs from tb-streamer
+- **Disconnected**: Cannot reach tb-streamer API (will retry automatically)
+
+### Limitations
+
+- Logs are fetched via HTTP polling, not WebSocket streaming
+- 2-second delay between updates (configurable via `POLL_INTERVAL`)
+- Deduplication is based on `time:msg:level` combination (logs with identical content at the same timestamp will be deduplicated)
+
+### Why Not WebSocket?
+
+The current implementation uses HTTP polling for simplicity. Future versions could implement WebSocket-based streaming for true real-time updates with zero delay.
