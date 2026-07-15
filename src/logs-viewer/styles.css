@@ -373,3 +373,22 @@ body {
 }
 
 
+
+.load-older-btn {
+  background: #3c3c3c;
+  color: #d4d4d4;
+  border: 1px solid #3e3e42;
+  border-radius: 3px;
+  padding: 3px 8px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.load-older-btn:hover:not(:disabled) {
+  background: #4e4e4e;
+}
+
+.load-older-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}

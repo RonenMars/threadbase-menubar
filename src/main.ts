@@ -319,10 +319,19 @@ ipcMain.handle(
 	"fetch-logs",
 	async (
 		_event,
-		opts: { since?: number; limit?: number; source?: string } = {},
+		opts: {
+			since?: number;
+			before?: number;
+			limit?: number;
+			source?: string;
+		} = {},
 	) => {
 		const since = Math.max(0, opts.since ?? 0);
-		const limit = Math.min(Math.max(1, opts.limit ?? 500), 1000);
+		const before =
+			typeof opts.before === "number" && Number.isFinite(opts.before)
+				? Math.max(0, opts.before)
+				: null;
+		const limit = Math.min(Math.max(1, opts.limit ?? 500), 2000);
 		const logsDir = path.join(os.homedir(), ".threadbase", "logs");
 		const preferred =
 			opts.source === "stdout" ||
@@ -350,6 +359,7 @@ ipcMain.handle(
 					ok: true,
 					logs: [],
 					offset: 0,
+					oldestIndex: 0,
 					total: 0,
 					source,
 					message: `No log file found for source=${source}`,
@@ -357,7 +367,8 @@ ipcMain.handle(
 			}
 
 			const stats = fs.statSync(filePath);
-			const maxBytes = Math.min(stats.size, 2 * 1024 * 1024);
+			// Keep a larger recent window so "Load older" / search have room to work.
+			const maxBytes = Math.min(stats.size, 8 * 1024 * 1024);
 			const start = Math.max(0, stats.size - maxBytes);
 			const fd = fs.openSync(filePath, "r");
 			let textContent = "";
@@ -379,14 +390,27 @@ ipcMain.handle(
 
 			let lines: string[];
 			let offset: number;
-			if (since > 0 && since < allLines.length) {
+			let oldestIndex: number;
+
+			if (before !== null) {
+				// Load older history ending just before `before`.
+				const end = Math.min(before, allLines.length);
+				const startIdx = Math.max(0, end - limit);
+				lines = allLines.slice(startIdx, end);
+				oldestIndex = startIdx;
+				offset = allLines.length;
+			} else if (since > 0 && since < allLines.length) {
 				lines = allLines.slice(since, since + limit);
+				oldestIndex = since;
 				offset = since + lines.length;
 			} else if (since >= allLines.length && since > 0) {
 				lines = [];
+				oldestIndex = allLines.length;
 				offset = allLines.length;
 			} else {
+				// Initial: newest `limit` lines.
 				lines = allLines.slice(-limit);
+				oldestIndex = Math.max(0, allLines.length - lines.length);
 				offset = allLines.length;
 			}
 
@@ -394,8 +418,11 @@ ipcMain.handle(
 				ok: true,
 				logs: lines,
 				offset,
+				oldestIndex,
 				total: allLines.length,
 				hasMore: offset < allLines.length,
+				hasOlder: oldestIndex > 0 || start > 0,
+				truncated: start > 0,
 				source,
 				fileSize: stats.size,
 				fileModified: stats.mtime.toISOString(),
@@ -407,12 +434,14 @@ ipcMain.handle(
 				error: String(error),
 				logs: [],
 				offset: since,
+				oldestIndex: 0,
 				total: 0,
 				source,
 			};
 		}
 	},
 );
+
 
 ipcMain.on("open-logs", () => {
 	trackLog("[ipc] open-logs received");

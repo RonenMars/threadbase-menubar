@@ -13,13 +13,17 @@ contextBridge.exposeInMainWorld("electronAPI", {
 	closeLogs: () => ipcRenderer.send("close-logs"),
 	fetchLogs: (opts?: {
 		since?: number;
+		before?: number;
 		limit?: number;
 		source?: string;
 	}): Promise<{
 		ok: boolean;
 		logs?: string[];
 		offset?: number;
+		oldestIndex?: number;
 		total?: number;
+		hasOlder?: boolean;
+		truncated?: boolean;
 		source?: string;
 		error?: string;
 		status?: number;

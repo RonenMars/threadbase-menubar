@@ -4,7 +4,8 @@ const BASE_URL = `http://localhost:${port}`;
 const DEFAULT_POLL_MS = 2000;
 const MIN_POLL_MS = 500;
 const MAX_POLL_MS = 3600_000;
-const MAX_LOGS = 1000;
+const MAX_LOGS = 5000;
+const PAGE_SIZE = 500;
 
 let logs = [];
 let filteredLogs = [];
@@ -14,6 +15,8 @@ let autoScroll = true;
 let isConnected = false;
 let currentOffset = 0;
 let knownTotal = 0;
+let oldestIndex = 0;
+let hasOlder = false;
 let pollIntervalMs = DEFAULT_POLL_MS;
 let pollTimer = null;
 
@@ -27,6 +30,7 @@ const autoScrollCheckbox = document.getElementById("auto-scroll");
 const pollIntervalSelect = document.getElementById("poll-interval");
 const customIntervalInput = document.getElementById("custom-interval");
 const customIntervalUnit = document.getElementById("custom-interval-unit");
+const loadOlderBtn = document.getElementById("load-older-btn");
 const refreshBtn = document.getElementById("refresh-btn");
 const clearBtn = document.getElementById("clear-btn");
 const closeBtn = document.getElementById("close-btn");
@@ -57,12 +61,16 @@ function setRefreshing(active) {
 
 closeBtn.addEventListener("click", () => window.electronAPI.closeLogs());
 clearBtn.addEventListener("click", () => clearLogs());
+loadOlderBtn?.addEventListener("click", () => loadOlderLogs());
 refreshBtn.addEventListener("click", () => {
   // Reload recent history from the start of the current window
   logs = [];
   filteredLogs = [];
   currentOffset = 0;
   knownTotal = 0;
+  oldestIndex = 0;
+  hasOlder = false;
+  updateLoadOlderButton();
   renderLogs();
   fetchLogs();
 });
@@ -177,7 +185,18 @@ function clearLogs() {
   filteredLogs = [];
   // Keep cursor at end of stream so the next poll does not reload cleared lines.
   currentOffset = knownTotal || currentOffset;
+  oldestIndex = currentOffset;
+  hasOlder = currentOffset > 0;
+  updateLoadOlderButton();
   renderLogs();
+}
+
+function updateLoadOlderButton() {
+  if (!loadOlderBtn) return;
+  loadOlderBtn.disabled = !hasOlder || oldestIndex <= 0;
+  loadOlderBtn.title = hasOlder && oldestIndex > 0
+    ? `Load up to ${PAGE_SIZE} older logs (currently showing from index ${oldestIndex})`
+    : "No older logs in the current file window";
 }
 
 function parseLogLine(line) {
@@ -284,9 +303,9 @@ function renderLogs() {
   }
 
   if (isFiltering && logs.length !== filteredLogs.length) {
-    logCountEl.textContent = `${filteredLogs.length} / ${logs.length} logs`;
+    logCountEl.textContent = `${filteredLogs.length} / ${logs.length} loaded`;
   } else {
-    logCountEl.textContent = `${filteredLogs.length} logs`;
+    logCountEl.textContent = `${filteredLogs.length} loaded`;
   }
 }
 
@@ -304,7 +323,7 @@ async function fetchLogs() {
   try {
     const data = await window.electronAPI.fetchLogs({
       since: currentOffset,
-      limit: 500,
+      limit: PAGE_SIZE,
     });
 
     if (!data || data.ok === false) {
@@ -312,26 +331,73 @@ async function fetchLogs() {
       return;
     }
 
-    const infoParts = [];
-    if (data.source) infoParts.push(data.source);
-    if (typeof data.total === "number") {
-      knownTotal = data.total;
-      infoParts.push(`${data.total} total`);
-    }
-    const info = infoParts.length ? ` • ${infoParts.join(" • ")}` : "";
-    setStatus(true, info);
+    if (typeof data.total === "number") knownTotal = data.total;
 
     if (data.logs && Array.isArray(data.logs) && data.logs.length > 0) {
       const newLogs = data.logs.map(parseLogLine);
-      logs = [...logs, ...newLogs].slice(-MAX_LOGS);
+      if (currentOffset === 0 && logs.length === 0) {
+        logs = newLogs.slice(-MAX_LOGS);
+        oldestIndex = data.oldestIndex ?? 0;
+      } else {
+        logs = [...logs, ...newLogs].slice(-MAX_LOGS);
+      }
       currentOffset = data.offset ?? currentOffset;
       filterAndRenderLogs();
     } else if (data.offset !== undefined) {
       currentOffset = data.offset;
     }
+
+    hasOlder = oldestIndex > 0;
+    updateLoadOlderButton();
+    const parts = [];
+    if (data.source) parts.push(data.source);
+    parts.push(`${logs.length} loaded / ${knownTotal} available`);
+    if (data.truncated) parts.push("recent window");
+    setStatus(true, parts.length ? ` • ${parts.join(" • ")}` : "");
   } catch (error) {
     setStatus(false);
     console.error("Failed to fetch logs:", error);
+  } finally {
+    setRefreshing(false);
+  }
+}
+
+async function loadOlderLogs() {
+  if (!hasOlder || oldestIndex <= 0) return;
+  setRefreshing(true);
+  const prevScrollHeight = logsContainer.scrollHeight;
+  const prevScrollTop = logsContainer.scrollTop;
+  try {
+    const data = await window.electronAPI.fetchLogs({
+      before: oldestIndex,
+      limit: PAGE_SIZE,
+    });
+    if (!data || data.ok === false || !data.logs?.length) {
+      hasOlder = false;
+      updateLoadOlderButton();
+      return;
+    }
+    const olderLogs = data.logs.map(parseLogLine);
+    oldestIndex = data.oldestIndex ?? Math.max(0, oldestIndex - olderLogs.length);
+    hasOlder = (data.hasOlder && oldestIndex > 0) || oldestIndex > 0;
+    logs = [...olderLogs, ...logs].slice(0, MAX_LOGS);
+    // Keep live cursor at end
+    if (typeof data.total === "number") knownTotal = data.total;
+    if (typeof data.offset === "number") currentOffset = Math.max(currentOffset, data.offset);
+    const wasAuto = autoScroll;
+    autoScroll = false;
+    filterAndRenderLogs();
+    autoScroll = wasAuto;
+    // Preserve viewport position after prepending
+    logsContainer.scrollTop = logsContainer.scrollHeight - prevScrollHeight + prevScrollTop;
+    const parts = [];
+    if (data.source) parts.push(data.source);
+    parts.push(`${logs.length} loaded / ${knownTotal} available`);
+    if (data.truncated) parts.push("recent window");
+    setStatus(true, parts.length ? ` • ${parts.join(" • ")}` : "");
+    updateLoadOlderButton();
+  } catch (error) {
+    console.error("Failed to load older logs:", error);
   } finally {
     setRefreshing(false);
   }
