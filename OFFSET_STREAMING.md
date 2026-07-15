@@ -1,6 +1,6 @@
-# Cursor-Based Log Streaming
+# Offset-Based Log Streaming
 
-This document explains how the logs viewer implements efficient real-time log streaming using a cursor/offset-based approach.
+This document explains how the logs viewer implements efficient real-time log streaming using a offset-based approach.
 
 ## Architecture
 
@@ -12,9 +12,9 @@ The initial implementation used client-side deduplication:
 - Required comparing timestamps and messages
 - Inefficient: transferred duplicate data on every poll
 
-### Cursor-Based Solution
+### Offset-Based Solution
 
-The new implementation uses server-side cursor tracking:
+The new implementation uses server-side offset tracking:
 - Each log line has an implicit ID (its line number/offset)
 - Client tracks the current offset
 - API only returns logs **after** the specified offset
@@ -167,7 +167,7 @@ Multiple clients can independently track their own offsets:
 
 If logs are written between polls:
 - They will be included in the next poll automatically
-- Cursor-based approach never misses logs
+- Offset-based approach never misses logs
 - Unlike WebSocket, no special reconnection logic needed
 
 ## Future Enhancements
@@ -231,7 +231,7 @@ curl "http://localhost:8766/api/logs/meta"
 
 ## Conclusion
 
-Cursor-based streaming provides:
+Offset-based streaming provides:
 - ✅ Efficient network usage
 - ✅ Simple implementation
 - ✅ No missed logs
