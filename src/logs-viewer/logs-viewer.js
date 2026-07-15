@@ -9,7 +9,7 @@ let filteredLogs = [];
 let currentFilter = 'all';
 let autoScroll = true;
 let isConnected = false;
-let lastFetchedLogs = new Set();
+let currentOffset = 0;
 
 const logsContainer = document.getElementById("logs-container");
 const logCountEl = document.getElementById("log-count");
@@ -22,7 +22,12 @@ const closeBtn = document.getElementById("close-btn");
 
 closeBtn.addEventListener("click", () => window.electronAPI.close());
 clearBtn.addEventListener("click", () => clearLogs());
-refreshBtn.addEventListener("click", () => fetchLogs());
+refreshBtn.addEventListener("click", () => {
+  // Reset to fetch from beginning
+  currentOffset = 0;
+  clearLogs();
+  fetchLogs();
+});
 
 levelFilter.addEventListener("change", (e) => {
   currentFilter = e.target.value;
@@ -36,16 +41,17 @@ autoScrollCheckbox.addEventListener("change", (e) => {
   }
 });
 
-function setStatus(connected) {
+function setStatus(connected, info = '') {
   isConnected = connected;
-  statusEl.textContent = connected ? "Connected (Live)" : "Disconnected";
+  const statusText = connected ? `Connected (Live)${info}` : "Disconnected";
+  statusEl.textContent = statusText;
   statusEl.className = `status-text ${connected ? "connected" : "disconnected"}`;
 }
 
 function clearLogs() {
   logs = [];
   filteredLogs = [];
-  lastFetchedLogs.clear();
+  currentOffset = 0;
   renderLogs();
 }
 
@@ -66,10 +72,6 @@ function parseLogLine(line) {
       raw: true
     };
   }
-}
-
-function getLogKey(log) {
-  return `${log.time}:${log.msg}:${log.level}`;
 }
 
 function formatTime(timestamp) {
@@ -160,7 +162,12 @@ function scrollToBottom() {
 
 async function fetchLogs() {
   try {
-    const response = await fetch(`${BASE_URL}/api/logs`, {
+    // Build URL with cursor/offset
+    const url = new URL(`${BASE_URL}/api/logs`);
+    url.searchParams.set('since', currentOffset.toString());
+    url.searchParams.set('limit', '500');
+    
+    const response = await fetch(url.toString(), {
       signal: AbortSignal.timeout(5000),
       headers: { "X-Client": "menubar-logs" },
     });
@@ -171,32 +178,23 @@ async function fetchLogs() {
     }
     
     const data = await response.json();
-    setStatus(true);
     
-    if (data.logs && Array.isArray(data.logs)) {
-      const parsedLogs = data.logs.map(parseLogLine);
+    // Update status with additional info
+    const info = data.total ? ` • ${data.total} total` : '';
+    setStatus(true, info);
+    
+    if (data.logs && Array.isArray(data.logs) && data.logs.length > 0) {
+      // Parse and append new logs
+      const newLogs = data.logs.map(parseLogLine);
+      logs = [...logs, ...newLogs].slice(-MAX_LOGS);
       
-      // Only add logs we haven't seen before (deduplication)
-      const newLogs = [];
-      for (const log of parsedLogs) {
-        const key = getLogKey(log);
-        if (!lastFetchedLogs.has(key)) {
-          lastFetchedLogs.add(key);
-          newLogs.push(log);
-        }
-      }
+      // Update offset for next fetch
+      currentOffset = data.offset;
       
-      if (newLogs.length > 0) {
-        logs = [...logs, ...newLogs].slice(-MAX_LOGS);
-        
-        // Also trim the deduplication set to prevent memory growth
-        if (lastFetchedLogs.size > MAX_LOGS * 2) {
-          const recentKeys = new Set(logs.map(getLogKey));
-          lastFetchedLogs = recentKeys;
-        }
-        
-        filterAndRenderLogs();
-      }
+      filterAndRenderLogs();
+    } else if (data.offset !== undefined) {
+      // No new logs, but update offset anyway
+      currentOffset = data.offset;
     }
   } catch (error) {
     setStatus(false);
@@ -205,7 +203,9 @@ async function fetchLogs() {
 }
 
 function startPolling() {
+  // Initial fetch (gets last 500 logs)
   fetchLogs();
+  // Poll for updates
   setInterval(fetchLogs, POLL_INTERVAL);
 }
 
