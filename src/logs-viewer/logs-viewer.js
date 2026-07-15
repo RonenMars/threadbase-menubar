@@ -10,6 +10,7 @@ let currentFilter = 'all';
 let autoScroll = true;
 let isConnected = false;
 let currentOffset = 0;
+let knownTotal = 0;
 
 const logsContainer = document.getElementById("logs-container");
 const logCountEl = document.getElementById("log-count");
@@ -23,9 +24,12 @@ const closeBtn = document.getElementById("close-btn");
 closeBtn.addEventListener("click", () => window.electronAPI.closeLogs());
 clearBtn.addEventListener("click", () => clearLogs());
 refreshBtn.addEventListener("click", () => {
-  // Reset to fetch from beginning
+  // Reload recent history from the start of the current window
+  logs = [];
+  filteredLogs = [];
   currentOffset = 0;
-  clearLogs();
+  knownTotal = 0;
+  renderLogs();
   fetchLogs();
 });
 
@@ -51,7 +55,8 @@ function setStatus(connected, info = '') {
 function clearLogs() {
   logs = [];
   filteredLogs = [];
-  currentOffset = 0;
+  // Keep cursor at end of stream so the next poll does not reload cleared lines.
+  currentOffset = knownTotal || currentOffset;
   renderLogs();
 }
 
@@ -174,7 +179,10 @@ async function fetchLogs() {
 
     const infoParts = [];
     if (data.source) infoParts.push(data.source);
-    if (data.total) infoParts.push(`${data.total} total`);
+    if (typeof data.total === "number") {
+      knownTotal = data.total;
+      infoParts.push(`${data.total} total`);
+    }
     const info = infoParts.length ? ` • ${infoParts.join(" • ")}` : "";
     setStatus(true, info);
 
