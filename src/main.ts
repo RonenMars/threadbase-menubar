@@ -1,4 +1,4 @@
-import { app, ipcMain, screen } from "electron";
+import { app, ipcMain, screen, BrowserWindow } from "electron";
 import { menubar } from "menubar";
 import * as fs from "fs";
 import * as os from "os";
@@ -54,11 +54,6 @@ const LINUX_AUTOSTART = path.join(
 	"threadbase-menubar.desktop",
 );
 
-// When running unpackaged (in-tree electron), execPath is the bare electron
-// binary — registering it without the app path argument makes login open
-// Electron's default welcome window instead of this app. Pass the app dir
-// explicitly; packaged builds need no args. The same options must be passed
-// to getLoginItemSettings or the registered entry won't be recognized.
 function loginItemOptions(): { path?: string; args?: string[] } {
 	if (app.isPackaged) return {};
 	return { path: process.execPath, args: [app.getAppPath()] };
@@ -94,6 +89,43 @@ function setLoginSetting(enable: boolean): void {
 	});
 }
 
+// ── Logs Window ──────────────────────────────────────────────────────────────
+
+let logsWindow: BrowserWindow | null = null;
+
+function createLogsWindow(): void {
+	if (logsWindow && !logsWindow.isDestroyed()) {
+		logsWindow.focus();
+		return;
+	}
+
+	logsWindow = new BrowserWindow({
+		width: 900,
+		height: 600,
+		minWidth: 600,
+		minHeight: 400,
+		title: "Threadbase Logs",
+		show: false,
+		webPreferences: {
+			preload: path.join(__dirname, "preload.js"),
+			nodeIntegration: false,
+			contextIsolation: true,
+		},
+	});
+
+	logsWindow.loadFile(path.join(__dirname, "logs-viewer/index.html"), {
+		query: { port: port.toString() },
+	});
+
+	logsWindow.once("ready-to-show", () => {
+		logsWindow?.show();
+	});
+
+	logsWindow.on("closed", () => {
+		logsWindow = null;
+	});
+}
+
 // ── App ──────────────────────────────────────────────────────────────────────
 
 const mb = menubar({
@@ -124,8 +156,6 @@ function centerWindow(): void {
 	);
 }
 
-// Position the popup just below the tray icon, horizontally centered on it,
-// clamped to the active display's work area so it never spills off-screen.
 function positionUnderTray(trayBounds: Electron.Rectangle): void {
 	if (!mb.window) return;
 	const display = screen.getDisplayMatching(trayBounds);
@@ -156,11 +186,6 @@ mb.on("ready", () => {
 	}
 
 	if (process.platform === "darwin") {
-		// The menubar library registers both 'click' and 'double-click' on the
-		// tray, and showWindow() recalculates position from tray bounds (bottom-
-		// right). Replace both with a single debounced 'click' that anchors the
-		// popup under the clicked tray icon (on the display it lives on) and
-		// calls BrowserWindow.show() directly to skip repositioning.
 		mb.tray.removeAllListeners("click");
 		mb.tray.removeAllListeners("double-click");
 		let lastClick = 0;
@@ -188,7 +213,6 @@ mb.on("ready", () => {
 	}
 });
 
-// Windows only: center popup since the tray lives in the overflow area.
 if (process.platform === "win32") {
 	mb.on("after-create-window", () => {
 		mb.window?.setOpacity(0);
@@ -211,10 +235,17 @@ ipcMain.on("set-login-setting", (_event, enable: boolean) => {
 });
 
 ipcMain.on("close-window", () => {
-	// Use BrowserWindow.hide() directly because mb.hideWindow() short-circuits
-	// when its internal visibility flag is out of sync with the actual window
-	// state — which happens on macOS where the custom tray-click handler calls
-	// win.show() directly instead of mb.showWindow().
 	mb.window?.hide();
 });
+
 ipcMain.on("quit", () => app.quit());
+
+ipcMain.on("open-logs", () => {
+	createLogsWindow();
+});
+
+ipcMain.on("close-logs", () => {
+	if (logsWindow && !logsWindow.isDestroyed()) {
+		logsWindow.close();
+	}
+});

@@ -9,6 +9,9 @@ document.getElementById("port-value").textContent = `:${port}`;
 document.getElementById("quit-btn").addEventListener("click", () => {
 	window.electronAPI.quit();
 });
+document.getElementById("logs-btn").addEventListener("click", () => {
+	window.electronAPI.openLogs();
+});
 
 const closeBtn = document.getElementById("close-btn");
 closeBtn.classList.add("visible");

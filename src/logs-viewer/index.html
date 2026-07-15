@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'none'; script-src 'self'; style-src 'self'; connect-src http://localhost:*;">
+  <title>Threadbase Logs</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="logs-app">
+    <div class="header">
+      <span class="logo">⬡</span>
+      <span class="title">Threadbase Logs</span>
+      <div class="header-actions">
+        <button id="refresh-btn" class="icon-btn" aria-label="Refresh" title="Refresh logs">↻</button>
+        <button id="clear-btn" class="icon-btn" aria-label="Clear" title="Clear logs">🗑</button>
+        <button id="close-btn" class="icon-btn" aria-label="Close">✕</button>
+      </div>
+    </div>
+
+    <div class="controls">
+      <div class="control-group">
+        <label for="level-filter">Level:</label>
+        <select id="level-filter">
+          <option value="all">All</option>
+          <option value="debug">Debug</option>
+          <option value="info">Info</option>
+          <option value="warn">Warn</option>
+          <option value="error">Error</option>
+        </select>
+      </div>
+      <div class="control-group">
+        <label for="auto-scroll">
+          <input type="checkbox" id="auto-scroll" checked>
+          Auto-scroll
+        </label>
+      </div>
+      <div class="control-group">
+        <span id="log-count" class="log-count">0 logs</span>
+      </div>
+    </div>
+
+    <div class="logs-container" id="logs-container">
+      <div class="logs-placeholder">
+        <span class="placeholder-icon">📋</span>
+        <span class="placeholder-text">No logs yet. Waiting for data...</span>
+      </div>
+    </div>
+
+    <div class="footer">
+      <span id="status-text" class="status-text">Connecting...</span>
+    </div>
+  </div>
+  <script src="logs-viewer.js"></script>
+</body>
+</html>

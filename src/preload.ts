@@ -9,5 +9,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
 		ipcRenderer.send("set-login-setting", enable),
 	quit: () => ipcRenderer.send("quit"),
 	close: () => ipcRenderer.send("close-window"),
+	openLogs: () => ipcRenderer.send("open-logs"),
+	closeLogs: () => ipcRenderer.send("close-logs"),
 	platform: process.platform,
 });
