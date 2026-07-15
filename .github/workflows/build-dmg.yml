@@ -136,6 +136,10 @@ jobs:
           APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
           APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
           # APPLE_API_KEY is set in the previous step via $GITHUB_ENV.
+          # electron-builder skips code signing on PR builds by default, leaving
+          # the app ad-hoc-signed — which then fails notarisation (status Invalid)
+          # and stapling. Force signing so PR builds notarise like main builds.
+          CSC_FOR_PULL_REQUEST: "true"
         run: npm run package:mac
 
       - name: Verify signature and notarization
@@ -200,6 +204,24 @@ jobs:
               --title "$TAG_NAME" \
               --generate-notes
           fi
+
+      # Tell threadbase-streamer a new menubar release exists so its
+      # "Update menubar submodule" workflow can open a submodule-bump PR.
+      # Needs a repo-scoped PAT secret STREAMER_DISPATCH_PAT — the default
+      # GITHUB_TOKEN cannot dispatch across repos. No-op if the secret is
+      # unset, so unconfigured forks don't fail the build.
+      - name: Notify streamer of new release
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ secrets.STREAMER_DISPATCH_PAT }}
+        run: |
+          set -euo pipefail
+          if [ -z "${GH_TOKEN:-}" ]; then
+            echo "STREAMER_DISPATCH_PAT not set — skipping cross-repo dispatch."
+            exit 0
+          fi
+          gh api repos/RonenMars/threadbase-streamer/dispatches \
+            -f event_type=menubar-released
 
   build-linux:
     name: Build Linux
