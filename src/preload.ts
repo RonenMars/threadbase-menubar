@@ -11,5 +11,18 @@ contextBridge.exposeInMainWorld("electronAPI", {
 	close: () => ipcRenderer.send("close-window"),
 	openLogs: () => ipcRenderer.send("open-logs"),
 	closeLogs: () => ipcRenderer.send("close-logs"),
+	fetchLogs: (opts?: {
+		since?: number;
+		limit?: number;
+		source?: string;
+	}): Promise<{
+		ok: boolean;
+		logs?: string[];
+		offset?: number;
+		total?: number;
+		source?: string;
+		error?: string;
+		status?: number;
+	}> => ipcRenderer.invoke("fetch-logs", opts ?? {}),
 	platform: process.platform,
 });

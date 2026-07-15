@@ -20,7 +20,7 @@ const refreshBtn = document.getElementById("refresh-btn");
 const clearBtn = document.getElementById("clear-btn");
 const closeBtn = document.getElementById("close-btn");
 
-closeBtn.addEventListener("click", () => window.electronAPI.close());
+closeBtn.addEventListener("click", () => window.electronAPI.closeLogs());
 clearBtn.addEventListener("click", () => clearLogs());
 refreshBtn.addEventListener("click", () => {
   // Reset to fetch from beginning
@@ -162,38 +162,28 @@ function scrollToBottom() {
 
 async function fetchLogs() {
   try {
-    // Build URL with cursor/offset
-    const url = new URL(`${BASE_URL}/api/logs`);
-    url.searchParams.set('since', currentOffset.toString());
-    url.searchParams.set('limit', '500');
-    
-    const response = await fetch(url.toString(), {
-      signal: AbortSignal.timeout(5000),
-      headers: { "X-Client": "menubar-logs" },
+    const data = await window.electronAPI.fetchLogs({
+      since: currentOffset,
+      limit: 500,
     });
-    
-    if (!response.ok) {
-      setStatus(false);
+
+    if (!data || data.ok === false) {
+      setStatus(false, data?.error ? ` • ${data.error}` : "");
       return;
     }
-    
-    const data = await response.json();
-    
-    // Update status with additional info
-    const info = data.total ? ` • ${data.total} total` : '';
+
+    const infoParts = [];
+    if (data.source) infoParts.push(data.source);
+    if (data.total) infoParts.push(`${data.total} total`);
+    const info = infoParts.length ? ` • ${infoParts.join(" • ")}` : "";
     setStatus(true, info);
-    
+
     if (data.logs && Array.isArray(data.logs) && data.logs.length > 0) {
-      // Parse and append new logs
       const newLogs = data.logs.map(parseLogLine);
       logs = [...logs, ...newLogs].slice(-MAX_LOGS);
-      
-      // Update offset for next fetch
-      currentOffset = data.offset;
-      
+      currentOffset = data.offset ?? currentOffset;
       filterAndRenderLogs();
     } else if (data.offset !== undefined) {
-      // No new logs, but update offset anyway
       currentOffset = data.offset;
     }
   } catch (error) {

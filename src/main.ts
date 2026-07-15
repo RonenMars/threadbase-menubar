@@ -5,6 +5,17 @@ import * as os from "os";
 import * as path from "path";
 import { createIcon } from "./icons";
 
+const TRACK_LOG = path.join(os.homedir(), ".threadbase", "menubar-track.log");
+function trackLog(msg: string, data?: unknown): void {
+	const line = `${new Date().toISOString()} ${msg}${data !== undefined ? " " + JSON.stringify(data) : ""}\n`;
+	try {
+		fs.mkdirSync(path.dirname(TRACK_LOG), { recursive: true });
+		fs.appendFileSync(TRACK_LOG, line);
+	} catch {}
+	console.log(msg, data ?? "");
+}
+
+
 function readPortFromServerYaml(): number | null {
 	try {
 		const yamlPath = path.join(os.homedir(), ".threadbase", "server.yaml");
@@ -17,6 +28,7 @@ function readPortFromServerYaml(): number | null {
 		return null;
 	}
 }
+
 
 const port = process.env.THREADBASE_PORT
 	? parseInt(process.env.THREADBASE_PORT, 10)
@@ -94,11 +106,14 @@ function setLoginSetting(enable: boolean): void {
 let logsWindow: BrowserWindow | null = null;
 
 function createLogsWindow(): void {
+	trackLog("[logs] open-logs requested");
 	if (logsWindow && !logsWindow.isDestroyed()) {
+		trackLog("[logs] focusing existing logs window");
 		logsWindow.focus();
 		return;
 	}
 
+	trackLog("[logs] creating new logs window");
 	logsWindow = new BrowserWindow({
 		width: 900,
 		height: 600,
@@ -118,11 +133,17 @@ function createLogsWindow(): void {
 	});
 
 	logsWindow.once("ready-to-show", () => {
+		trackLog("[logs] logs window ready-to-show");
 		logsWindow?.show();
 	});
 
 	logsWindow.on("closed", () => {
+		console.log("[logs] logs window closed");
 		logsWindow = null;
+	});
+
+	logsWindow.webContents.on("did-fail-load", (_e, code, desc, url) => {
+		console.error("[logs] failed to load", { code, desc, url });
 	});
 }
 
@@ -178,9 +199,13 @@ function displayIdContaining(rect: Electron.Rectangle): number {
 }
 
 mb.on("ready", () => {
+	trackLog("[app] menubar ready");
 	mb.tray.setToolTip("Threadbase Streamer");
 	mb.window?.on("blur", () => mb.hideWindow());
+	mb.window?.on("show", () => console.log("[tray] popup shown"));
+	mb.window?.on("hide", () => console.log("[tray] popup hidden"));
 	if (!readConfig().configured) {
+		console.log("[app] first run — showing centered window");
 		centerWindow();
 		mb.showWindow();
 	}
@@ -191,10 +216,21 @@ mb.on("ready", () => {
 		let lastClick = 0;
 		mb.tray.on("click", (_event, bounds) => {
 			const now = Date.now();
-			if (now - lastClick < 300) return;
+			if (now - lastClick < 300) {
+				trackLog("[tray] click ignored (debounce)");
+				return;
+			}
 			lastClick = now;
 			const win = mb.window;
-			if (!win) return;
+			trackLog("[tray] click", {
+				visible: win?.isVisible() ?? false,
+				focused: win?.isFocused() ?? false,
+				bounds,
+			});
+			if (!win) {
+				console.warn("[tray] no window yet");
+				return;
+			}
 			if (win.isVisible()) {
 				const sameDisplay =
 					displayIdContaining(win.getBounds()) === displayIdContaining(bounds);
@@ -234,13 +270,118 @@ ipcMain.on("set-login-setting", (_event, enable: boolean) => {
 	writeConfig({ configured: true });
 });
 
-ipcMain.on("close-window", () => {
+ipcMain.on("close-window", (event) => {
+	const sender = BrowserWindow.fromWebContents(event.sender);
+	if (sender && logsWindow && sender.id === logsWindow.id) {
+		logsWindow.close();
+		return;
+	}
 	mb.window?.hide();
 });
 
 ipcMain.on("quit", () => app.quit());
 
+ipcMain.handle(
+	"fetch-logs",
+	async (
+		_event,
+		opts: { since?: number; limit?: number; source?: string } = {},
+	) => {
+		const since = Math.max(0, opts.since ?? 0);
+		const limit = Math.min(Math.max(1, opts.limit ?? 500), 1000);
+		const logsDir = path.join(os.homedir(), ".threadbase", "logs");
+		const preferred =
+			opts.source === "stdout" ||
+			opts.source === "stderr" ||
+			opts.source === "dev"
+				? opts.source
+				: null;
+
+		const pickSource = (): string => {
+			if (preferred) return preferred;
+			for (const candidate of ["stdout", "stderr", "dev"] as const) {
+				const p = path.join(logsDir, `${candidate}.log`);
+				try {
+					if (fs.existsSync(p) && fs.statSync(p).size > 0) return candidate;
+				} catch {}
+			}
+			return "stdout";
+		};
+
+		const source = pickSource();
+		const filePath = path.join(logsDir, `${source}.log`);
+		try {
+			if (!fs.existsSync(filePath)) {
+				return {
+					ok: true,
+					logs: [],
+					offset: 0,
+					total: 0,
+					source,
+					message: `No log file found for source=${source}`,
+				};
+			}
+
+			const stats = fs.statSync(filePath);
+			const maxBytes = Math.min(stats.size, 2 * 1024 * 1024);
+			const start = Math.max(0, stats.size - maxBytes);
+			const fd = fs.openSync(filePath, "r");
+			let textContent = "";
+			try {
+				const buf = Buffer.alloc(maxBytes);
+				fs.readSync(fd, buf, 0, maxBytes, start);
+				textContent = buf.toString("utf8");
+			} finally {
+				fs.closeSync(fd);
+			}
+			if (start > 0) {
+				const firstNl = textContent.indexOf("\n");
+				if (firstNl >= 0) textContent = textContent.slice(firstNl + 1);
+			}
+
+			const allLines = textContent
+				.split("\n")
+				.filter((line) => line.trim() && !line.startsWith("==="));
+
+			let lines: string[];
+			let offset: number;
+			if (since > 0 && since < allLines.length) {
+				lines = allLines.slice(since, since + limit);
+				offset = since + lines.length;
+			} else if (since >= allLines.length && since > 0) {
+				lines = [];
+				offset = allLines.length;
+			} else {
+				lines = allLines.slice(-limit);
+				offset = allLines.length;
+			}
+
+			return {
+				ok: true,
+				logs: lines,
+				offset,
+				total: allLines.length,
+				hasMore: offset < allLines.length,
+				source,
+				fileSize: stats.size,
+				fileModified: stats.mtime.toISOString(),
+			};
+		} catch (error) {
+			trackLog("[logs] read error", { error: String(error), source });
+			return {
+				ok: false,
+				error: String(error),
+				logs: [],
+				offset: since,
+				total: 0,
+				source,
+			};
+		}
+	},
+);
+
 ipcMain.on("open-logs", () => {
+	trackLog("[ipc] open-logs received");
 	createLogsWindow();
 });
 
