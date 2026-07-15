@@ -110,7 +110,7 @@ function displayForLogsWindow(): Electron.Display {
 	if (mb.window && !mb.window.isDestroyed()) {
 		return screen.getDisplayMatching(mb.window.getBounds());
 	}
-	// Fallback: display under the cursor.
+	// Fallback: display under the mouse pointer.
 	return screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
 }
 

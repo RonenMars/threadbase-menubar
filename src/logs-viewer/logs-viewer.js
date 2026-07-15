@@ -183,7 +183,7 @@ function setStatus(connected, info = '') {
 function clearLogs() {
   logs = [];
   filteredLogs = [];
-  // Keep cursor at end of stream so the next poll does not reload cleared lines.
+  // Keep offset at end of stream so the next poll does not reload cleared lines.
   currentOffset = knownTotal || currentOffset;
   oldestIndex = currentOffset;
   hasOlder = currentOffset > 0;
@@ -381,7 +381,7 @@ async function loadOlderLogs() {
     oldestIndex = data.oldestIndex ?? Math.max(0, oldestIndex - olderLogs.length);
     hasOlder = (data.hasOlder && oldestIndex > 0) || oldestIndex > 0;
     logs = [...olderLogs, ...logs].slice(0, MAX_LOGS);
-    // Keep live cursor at end
+    // Keep live offset at end
     if (typeof data.total === "number") knownTotal = data.total;
     if (typeof data.offset === "number") currentOffset = Math.max(currentOffset, data.offset);
     const wasAuto = autoScroll;
