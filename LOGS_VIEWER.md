@@ -17,7 +17,8 @@ The Logs Viewer is a new window in the menubar app that displays real-time logs 
 
 ### Filtering
 - **Level filter**: Filter logs by level (all, debug, info, warn, error)
-- **Log count**: Shows the number of currently displayed logs
+- **Search**: Filter logs by substring match across message, level, component, and timestamp (⌘/Ctrl+F to focus, Esc to clear)
+- **Log count**: Shows the number of currently displayed logs (and total when filters are active)
 
 ### Controls
 - **Refresh**: Manually refresh the logs
@@ -72,9 +73,10 @@ The endpoint reads from `~/.threadbase/logs/dev.log` and returns the most recent
 1. **Open the menubar**: Click the Threadbase icon in your system tray/menubar
 2. **View Logs**: Click the "View Logs" button at the bottom of the popup
 3. **Filter logs**: Use the level dropdown to filter by log level
-4. **Auto-scroll**: Toggle auto-scroll on/off as needed
-5. **Clear logs**: Click the trash icon to clear the current view
-6. **Refresh**: Click the refresh icon to manually update logs
+4. **Search logs**: Type in the Search field to filter by message text (⌘/Ctrl+F)
+5. **Auto-scroll**: Toggle auto-scroll on/off as needed
+6. **Clear logs**: Click the trash icon to clear the current view
+7. **Refresh**: Click the refresh icon to manually update logs
 
 ## Development
 
@@ -117,7 +119,6 @@ Ensure tb-streamer is running on the configured port (default: 8766) for logs to
 ## Future Enhancements
 
 Possible improvements:
-- Search functionality
 - Export logs to file
 - Follow mode (like `tail -f`)
 - WebSocket-based real-time streaming
