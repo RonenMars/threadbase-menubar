@@ -1,0 +1,43 @@
+name: Verify SEMANTIC_RELEASE_PAT
+
+# One-shot PAT smoke test. Does not cut a release.
+on:
+  workflow_dispatch:
+
+jobs:
+  verify:
+    name: Probe PAT
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Authenticate and probe push access
+        env:
+          GH_TOKEN: ${{ secrets.SEMANTIC_RELEASE_PAT }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          if [ -z "${GH_TOKEN:-}" ]; then
+            echo "::error::SEMANTIC_RELEASE_PAT is empty or unset"
+            exit 1
+          fi
+
+          login="$(gh api user --jq .login)"
+          echo "Authenticated as: $login"
+
+          # Fine-grained PATs expose permissions on the repo resource.
+          perms="$(gh api "repos/$REPO" --jq '{admin:.permissions.admin,push:.permissions.push,maintain:.permissions.maintain}')"
+          echo "Repo permissions: $perms"
+          can_push="$(gh api "repos/$REPO" --jq '.permissions.push')"
+          if [ "$can_push" != "true" ]; then
+            echo "::error::Token lacks push permission on $REPO (need Contents: Read and write)"
+            exit 1
+          fi
+
+          # Prove Contents:write by creating then deleting a throwaway tag ref.
+          default_sha="$(gh api "repos/$REPO" --jq .default_branch | xargs -I{} gh api "repos/$REPO/git/ref/heads/{}" --jq .object.sha)"
+          tag="refs/tags/pat-probe-$(date +%s)"
+          echo "Creating throwaway ref $tag at $default_sha"
+          gh api -X POST "repos/$REPO/git/refs" -f ref="$tag" -f sha="$default_sha" >/dev/null
+          gh api -X DELETE "repos/$REPO/git/refs/${tag#refs/}" >/dev/null
+          echo "Created and deleted $tag — SEMANTIC_RELEASE_PAT works for tag push/delete."
