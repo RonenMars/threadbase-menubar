@@ -11,7 +11,7 @@ on:
         default: false
 
 jobs:
-  # Skip when the head commit is a semantic-release bump (`chore(release): … [skip ci]`)
+  # Skip when the head commit is a semantic-release bump (`chore(release): …`)
   # so the release commit's push to main does not re-enter this workflow.
   gate:
     name: Gate
@@ -23,9 +23,9 @@ jobs:
         env:
           HEAD_COMMIT_MSG: ${{ github.event.head_commit.message }}
         run: |
-          if printf '%s' "${HEAD_COMMIT_MSG:-}" | grep -qF -- '[skip ci]'; then
+          if printf '%s' "${HEAD_COMMIT_MSG:-}" | grep -qF -- 'chore(release):'; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
-            echo "::notice title=Release skipped::'[skip ci]' found in commit message — release workflow no-op."
+            echo "::notice title=Release skipped::'chore(release):' bump commit — release workflow no-op."
           else
             echo "skip=false" >> "$GITHUB_OUTPUT"
           fi

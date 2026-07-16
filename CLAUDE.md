@@ -96,7 +96,7 @@ The split exists because the dev keychain often contains expired/revoked certs t
 ## Conventions
 
 - Conventional commits: `feat:`, `fix:`, `chore:`, etc. (same as parent repo)
-- Release: `docs:` / `ci:` do not bump; other types cut a version. Release commits use `chore(release): … [skip ci]`.
+- Release: only `docs:`, `ci:`, and `chore(release):` do not bump; every other type (including plain `chore:`) cuts a patch. Release commits use `chore(release): <v>` (no `[skip ci]` — the gate + build guards key on the `chore(release):` message so the `v*` tag can trigger Build DMG).
 - Roadmap and planned milestones: [`.claude/plans/roadmap.md`](.claude/plans/roadmap.md)
 
 ## Contributing to docs
