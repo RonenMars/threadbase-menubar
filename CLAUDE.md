@@ -8,6 +8,8 @@ Electron system tray app (`threadbase-menubar`) that monitors a running Threadba
 
 Consumed as a git submodule at `vendor/menubar` inside [threadbase-streamer](https://github.com/RonenMars/threadbase-streamer).
 
+Merges to `main` auto-release via semantic-release (`.github/workflows/release.yml`) for conventional commits except `docs:` and `ci:`. A new `v*` tag triggers Build DMG, which notifies streamer (`menubar-released`) to bump `vendor/menubar`.
+
 ## Commands
 
 - `npm start` — build then launch (`npm run build && electron .`)
@@ -94,6 +96,7 @@ The split exists because the dev keychain often contains expired/revoked certs t
 ## Conventions
 
 - Conventional commits: `feat:`, `fix:`, `chore:`, etc. (same as parent repo)
+- Release: `docs:` / `ci:` do not bump; other types cut a version. Release commits use `chore(release): … [skip ci]`.
 - Roadmap and planned milestones: [`.claude/plans/roadmap.md`](.claude/plans/roadmap.md)
 
 ## Contributing to docs

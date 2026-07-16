@@ -63,6 +63,10 @@ concurrency:
 jobs:
   build:
     name: Build, sign, notarize
+    # Skip rolling main builds for semantic-release bump commits (`[skip ci]`).
+    # Tag pushes keep github.ref as refs/tags/v*, so assets + streamer notify still run.
+    if: |
+      !(github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[skip ci]'))
     runs-on: macos-14
     timeout-minutes: 30
     permissions:
@@ -225,6 +229,10 @@ jobs:
 
   build-linux:
     name: Build Linux
+    # Skip rolling main builds for semantic-release bump commits (`[skip ci]`).
+    # Tag pushes keep github.ref as refs/tags/v*, so assets + streamer notify still run.
+    if: |
+      !(github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[skip ci]'))
     runs-on: ubuntu-latest
     needs: build  # macOS job creates the release first; we upload to it
     timeout-minutes: 20
@@ -278,6 +286,10 @@ jobs:
 
   build-windows:
     name: Build Windows
+    # Skip rolling main builds for semantic-release bump commits (`[skip ci]`).
+    # Tag pushes keep github.ref as refs/tags/v*, so assets + streamer notify still run.
+    if: |
+      !(github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[skip ci]'))
     # Pinned explicitly: GitHub will silently redirect windows-latest to this
     # image on 2026-06-15. Pinning now lets us discover any toolchain breakage
     # (VS 2026, Node 22 default, etc.) on our schedule instead of at cutover.

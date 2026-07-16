@@ -1,0 +1,98 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: "Run semantic-release (tag + GitHub Release). When false, only the precheck runs."
+        type: boolean
+        default: false
+
+jobs:
+  # Skip when the head commit is a semantic-release bump (`chore(release): … [skip ci]`)
+  # so the release commit's push to main does not re-enter this workflow.
+  gate:
+    name: Gate
+    runs-on: ubuntu-latest
+    outputs:
+      skip: ${{ steps.decide.outputs.skip }}
+    steps:
+      - id: decide
+        env:
+          HEAD_COMMIT_MSG: ${{ github.event.head_commit.message }}
+        run: |
+          if printf '%s' "${HEAD_COMMIT_MSG:-}" | grep -qF -- '[skip ci]'; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "::notice title=Release skipped::'[skip ci]' found in commit message — release workflow no-op."
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  release-precheck:
+    name: Precheck
+    needs: gate
+    if: needs.gate.outputs.skip != 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      # Read-only: the precheck only inspects git history to decide whether a
+      # release is warranted. It does not push, publish, or contact npm.
+      contents: read
+    outputs:
+      should_release: ${{ steps.precheck.outputs.should_release }}
+      next_version: ${{ steps.precheck.outputs.next_version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Decide whether a release is needed
+        id: precheck
+        # Deliberately NOT `semantic-release --dry-run`: that loads every plugin
+        # and runs their verifyConditions first. release-precheck.mjs calls ONLY
+        # @semantic-release/commit-analyzer with the same rules from
+        # .releaserc.json — no publishing plugins, no npm auth.
+        run: node scripts/release-precheck.mjs
+
+  release:
+    name: Release
+    needs: [gate, release-precheck]
+    if: |
+      needs.gate.outputs.skip != 'true' &&
+      needs.release-precheck.outputs.should_release == 'true' &&
+      (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.publish == true))
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Streamer notify stays in build-dmg.yml on the v* tag path so DMG/AppImage/exe
+      # assets exist before threadbase-streamer bumps vendor/menubar.
+      - name: Run semantic-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.SEMANTIC_RELEASE_PAT || secrets.GITHUB_TOKEN }}
+        run: npx semantic-release
