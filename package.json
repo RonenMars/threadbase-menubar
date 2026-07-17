@@ -36,6 +36,6 @@
 		"electron": "^28.0.0",
 		"electron-builder": "^26.15.3",
 		"semantic-release": "^25.0.7",
-		"typescript": "^6.0.3"
+		"typescript": "^7.0.2"
 	}
 }
