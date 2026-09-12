@@ -1,6 +1,6 @@
 {
 	"name": "threadbase-menubar",
-	"version": "0.2.3",
+	"version": "0.2.4",
 	"description": "Menu bar status indicator for Threadbase Streamer",
 	"license": "MIT",
 	"author": "Ronen Mars",
