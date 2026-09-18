@@ -1,6 +1,6 @@
 {
 	"name": "threadbase-menubar",
-	"version": "0.2.2",
+	"version": "0.2.5",
 	"description": "Menu bar status indicator for Threadbase Streamer",
 	"license": "MIT",
 	"author": "Ronen Mars",
@@ -25,17 +25,17 @@
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.5.1",
-		"@semantic-release/changelog": "^6.0.3",
+		"@semantic-release/changelog": "^7.0.0",
 		"@semantic-release/commit-analyzer": "^13.0.1",
 		"@semantic-release/git": "^10.0.1",
 		"@semantic-release/github": "^12.0.9",
 		"@semantic-release/npm": "^13.1.5",
 		"@semantic-release/release-notes-generator": "^14.1.1",
 		"@types/node": "^26.0.1",
-		"conventional-changelog-conventionalcommits": "^9.3.1",
+		"conventional-changelog-conventionalcommits": "^10.2.1",
 		"electron": "^28.0.0",
 		"electron-builder": "^26.15.3",
-		"semantic-release": "^25.0.7",
+		"semantic-release": "^25.0.8",
 		"typescript": "^6.0.3"
 	}
 }
