@@ -3,3 +3,4 @@ dist/
 release/
 *.js.map
 .worktrees/
+.DS_STORE
