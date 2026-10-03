@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-Electron system tray app (`threadbase-menubar`) that monitors a running Threadbase Streamer. Shows a color-coded tray icon (green/gray/red) and a popup with status details and a "Launch at login" toggle.
+Electron system tray app (`threadbase-menubar`) that monitors a running Threadbase Streamer. Shows a monochrome tray icon (template image on macOS; full = running, dimmed = stopped) and a popup with status details and a "Launch at login" toggle.
 
 Consumed as a git submodule at `vendor/menubar` inside [threadbase-streamer](https://github.com/RonenMars/threadbase-streamer).
 
@@ -43,7 +43,7 @@ The menubar parses only the `port:` line from `server.yaml` with a regex — it 
 
 **First launch:** on the very first run, `config.json` does not exist so `configured: false`. The main process calls `mb.showWindow()` automatically so the user sees the popup and can set the "Launch at login" preference before doing anything else. Once they toggle it, `configured: true` is written and the auto-show never fires again.
 
-**Polling:** the renderer fetches `http://localhost:<port>/healthz` every 5 seconds (`AbortSignal.timeout(3000)`). On success it sends `status-update` IPC to the main process which swaps the tray icon. On failure the icon goes gray.
+**Polling:** the renderer fetches `http://localhost:<port>/healthz` every 5 seconds (`AbortSignal.timeout(3000)`). On success it sends `status-update` IPC to the main process which swaps the tray icon. On failure the icon dims.
 
 **Login item — per platform:**
 - macOS / Windows: `app.setLoginItemSettings({ openAtLogin, openAsHidden: true })`
