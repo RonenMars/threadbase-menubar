@@ -1,3 +1,5 @@
+## [0.3.0](https://github.com/RonenMars/threadbase-menubar/compare/v0.2.6...v0.3.0) (2026-10-03)
+
 ## [0.2.6](https://github.com/RonenMars/threadbase-menubar/compare/v0.2.5...v0.2.6) (2026-09-18)
 
 ## [0.2.5](https://github.com/RonenMars/threadbase-menubar/compare/v0.2.4...v0.2.5) (2026-09-13)
