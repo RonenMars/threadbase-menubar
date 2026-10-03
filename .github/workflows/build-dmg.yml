@@ -38,7 +38,6 @@ on:
       - 'docs/**'
       - '.claude/**'
       - '.remember/**'
-      - '.gitignore'
       - '.vscode/**'
       - '.idea/**'
       - 'coverage/**'
