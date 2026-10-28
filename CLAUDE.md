@@ -23,7 +23,7 @@ No test runner is configured yet.
 
 - `src/main.ts` — Electron main process: menubar window, IPC handlers, login-item management, first-launch detection
 - `src/preload.ts` — Context bridge, exposes `window.electronAPI` to the renderer
-- `src/icons.ts` — Generates 16×16 PNG icons at runtime using pure Node.js (CRC32 + zlib deflate) — no image asset files
+- `src/icons.ts` — Loads the tray icon PNGs from `assets/` (`tray-icon-{online,offline}{Template,-light}[@2x].png`). Runs every 5 s from the `status-update` handler, so it must never throw: a missing asset degrades the icon instead of raising an uncaught-exception dialog per poll. When running from source, `assets/` comes from the checkout but `dist/` from the last `npm run build` — after moving the checkout (e.g. a `vendor/menubar` bump in the streamer), rebuild and restart.
 - `src/renderer/` — Vanilla HTML/CSS/JS popup UI — renderer files are **not** TypeScript
 
 ## Configuration
